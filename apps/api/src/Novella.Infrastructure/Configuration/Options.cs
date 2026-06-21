@@ -47,3 +47,14 @@ public sealed class SeedOptions
     public string? AdminPassword { get; set; }
     public string AdminDisplayName { get; set; } = "Store Admin";
 }
+
+/// <summary>
+/// Controls startup database lifecycle. Both default to <c>false</c> so Production never migrates or
+/// seeds implicitly; an environment must opt in explicitly. Migration and seeding are independent.
+/// </summary>
+public sealed class DatabaseOptions
+{
+    public const string Section = "Database";
+    public bool AutoMigrate { get; set; }
+    public bool AutoSeed { get; set; }
+}

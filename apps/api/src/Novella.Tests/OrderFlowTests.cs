@@ -108,6 +108,41 @@ public class OrderFlowTests
     }
 
     [Fact]
+    public async Task Confirming_already_confirmed_order_does_not_deduct_twice()
+    {
+        var g = Build();
+        using var _ = g.Db;
+        var (orderId, variantId, _) = await PlaceOrderAsync(g, qty: 2);
+
+        await g.Orders.UpdateStatusAsync(orderId, OrderStatus.Confirmed, default);
+
+        // A second Confirm is an invalid transition (Confirmed -> Confirmed) and must not deduct again.
+        var act = () => g.Orders.UpdateStatusAsync(orderId, OrderStatus.Confirmed, default);
+        (await act.Should().ThrowAsync<AppException>()).Which.Code.Should().Be(ErrorCodes.OrderInvalidTransition);
+
+        (await g.Db.Db.ProductVariants.FirstAsync(v => v.Id == variantId)).StockQuantity.Should().Be(8);
+        (await g.Db.Db.InventoryMovements.CountAsync(m => m.OrderId == orderId && m.MovementType == MovementType.Deduct)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Cancelling_already_cancelled_order_does_not_restore_twice()
+    {
+        var g = Build();
+        using var _ = g.Db;
+        var (orderId, variantId, _) = await PlaceOrderAsync(g, qty: 2);
+
+        await g.Orders.UpdateStatusAsync(orderId, OrderStatus.Confirmed, default);
+        await g.Orders.CancelByAdminEndpointAsync(orderId, new CancelOrderRequest("first"), default);
+
+        // A second cancellation is rejected (terminal) and must not restore stock again.
+        var act = () => g.Orders.CancelByAdminEndpointAsync(orderId, new CancelOrderRequest("second"), default);
+        (await act.Should().ThrowAsync<AppException>()).Which.Code.Should().Be(ErrorCodes.OrderCannotBeCancelled);
+
+        (await g.Db.Db.ProductVariants.FirstAsync(v => v.Id == variantId)).StockQuantity.Should().Be(10);
+        (await g.Db.Db.InventoryMovements.CountAsync(m => m.OrderId == orderId && m.MovementType == MovementType.Restore)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Customer_cannot_cancel_after_preparing()
     {
         var g = Build();

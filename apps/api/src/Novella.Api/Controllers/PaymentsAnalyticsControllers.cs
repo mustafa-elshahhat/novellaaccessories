@@ -48,7 +48,6 @@ public sealed class PaymentsController : ControllerBase
 
 [ApiController]
 [Route("api/analytics")]
-[AllowAnonymous]
 public sealed class AnalyticsController : ControllerBase
 {
     private readonly AnalyticsService _analytics;
@@ -60,17 +59,22 @@ public sealed class AnalyticsController : ControllerBase
         _user = user;
     }
 
+    // Anonymous visitors must be able to start sessions and emit events; the customer id is read
+    // opportunistically when a token is present.
     [HttpPost("session/start")]
+    [AllowAnonymous]
     public async Task<IActionResult> StartSession([FromBody] StartSessionRequest req, CancellationToken ct)
         => Ok(await _analytics.StartSessionAsync(req, _user.CustomerId, ct));
 
     [HttpPost("events")]
+    [AllowAnonymous]
     public async Task<IActionResult> Events([FromBody] TrackEventsRequest req, CancellationToken ct)
     {
         await _analytics.TrackEventsAsync(req, _user.CustomerId, ct);
         return Ok(new { received = true });
     }
 
+    // Identify links the current session to a signed-in customer, so it requires authentication.
     [HttpPost("session/identify")]
     [Authorize(Policy = "Customer")]
     public async Task<IActionResult> Identify([FromBody] IdentifyRequest req, CancellationToken ct)

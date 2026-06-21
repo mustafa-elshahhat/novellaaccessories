@@ -3,9 +3,9 @@
 ASP.NET Core REST API for Novella Accessories, backed by **SQL Server** as the main
 business database. Built with **Clean Architecture**.
 
-> **Status:** folder/structure preparation only. This phase contains **no** solution
-> file, project files, `DbContext`, entities, services, controllers, or migrations.
-> Those are produced later by `docs/18_BACKEND_IMPLEMENTATION_PLAN.md`.
+> **Status:** backend implemented per `docs/18_BACKEND_IMPLEMENTATION_PLAN.md`
+> (solution, `DbContext`, entities, services, controllers, `InitialCreate` migration,
+> idempotent seed, and tests). Target framework: **.NET 10**.
 
 ## Project layout
 
@@ -54,11 +54,16 @@ transport swap (e.g. official WhatsApp Business API) contained.
 Copy `.env.example` to a local untracked configuration source. Real `.env` files are
 git-ignored; production secrets live in the hosting provider's environment settings.
 
-**Required to boot:**
+**Required in Production (startup fails fast if missing/unsafe):**
 
 - `ConnectionStrings__DefaultConnection` — SQL Server (Unicode/`nvarchar` for Arabic).
 - `Jwt__Issuer`, `Jwt__Audience`, `Jwt__SigningKey` — auth token issuance/validation.
-- `Cors__StorefrontOrigin`, `Cors__AdminOrigin` — allowed frontend origins (no wildcards).
+  The signing key must be **≥ 32 chars** and must not be a placeholder/dev value.
+- `Cors__StorefrontOrigin`, `Cors__AdminOrigin` — allowed frontend origins (no wildcards;
+  must be valid absolute `http(s)` URLs).
+
+Production startup runs `StartupValidation` and throws a clear error listing every missing
+or unsafe value. Development/Testing keep clearly-labelled local fallbacks.
 
 **Required for WhatsApp sends (optional at boot):**
 
@@ -71,8 +76,34 @@ git-ignored; production secrets live in the hosting provider's environment setti
 - `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret` — image storage.
 - `Payment__ActiveProvider`, `Payment__WebhookSecret`.
 
+## Database migration & seeding
+
+Startup migration and seeding are **opt-in and independent**, both default `false`, so
+Production never migrates or seeds implicitly:
+
+- `Database__AutoMigrate` — apply pending EF migrations on startup (default `false`).
+- `Database__AutoSeed` — run the idempotent seed on startup (default `false`).
+
+Each step logs its lifecycle (`enabled` / `skipped` / `started` / `completed` / `failed`);
+the connection string and seed password are never logged. Seeding is idempotent (admin,
+4 categories, Egyptian governorates, 7 static pages, site/WhatsApp/reminder/two-order
+settings — the latter three disabled by default). When `Database__AutoSeed=true` and an
+admin must be created, `Seed__AdminPassword` is required (no production fallback password).
+
+**Manual/controlled deployment** (recommended for Production — do not auto-migrate):
+
+```bash
+# Apply migrations explicitly against the target database:
+dotnet ef database update \
+  --project src/Novella.Infrastructure --startup-project src/Novella.Api
+# (connection string supplied via ConnectionStrings__DefaultConnection in the environment)
+```
+
+`EnsureCreated` is never used for the relational database — migrations are the source of truth.
+
 ## Local development
 
-- Runs on `http://localhost:5000`.
-- Migrations and seed run from this app; the connection string lives **only** in the
-  API environment.
+- Runs on `http://localhost:5000` (see `Properties/launchSettings.json`).
+- `appsettings.Development.json` enables `Database__AutoMigrate`/`AutoSeed` for convenience
+  and supplies clearly-labelled local-only fallbacks (rejected in Production).
+- The connection string lives **only** in the API environment, never in tracked config.
