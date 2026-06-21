@@ -1,52 +1,112 @@
-# apps/admin — Novella Accessories Admin Dashboard
+# Novella Admin
 
-Internal admin dashboard for Novella Accessories.
+Internal authenticated dashboard for Novella Accessories. The app is a static React/Vite dashboard that talks only to `apps/api` admin endpoints.
 
-> **Status:** folder/structure preparation only. This phase contains **no** routes, UI
-> components, dependencies, or API client logic. Those are produced later by
-> `docs/20_ADMIN_IMPLEMENTATION_PLAN.md`.
+## Stack
 
-## Planned stack & conventions
+- React 19, Vite 8, TypeScript strict mode.
+- React Router protected routes.
+- TanStack Query for server state.
+- React Hook Form and Zod for forms and validation.
+- Vitest and Testing Library.
+- ESLint flat config.
 
-- **React + Vite** admin dashboard is planned (`VITE_*` environment variables).
-- **Admin-only API integration** — talks to `apps/api` admin endpoints.
-- **Auth-protected routes** are expected (an auth guard wraps the app shell).
-- **Practical, utility-first dashboard UI** — tables, forms, badges, dialogs.
-- **Brand colors used lightly** — function over decoration.
+## Environment
 
-## Project layout
+Required public variables:
 
 ```text
-src/
-  app/         # App shell, routing, providers, auth guard
-  pages/       # Route-level screens
-  components/  # Shared UI (tables, forms, badges, dialogs)
-  features/    # Feature modules:
-               #   auth, dashboard, products, categories, orders, customers,
-               #   coupons, shipping, heroes, whatsapp, payments, expenses,
-               #   reports, analytics, pages, seo, settings
-  lib/         # API client, auth/token handling, formatters
-  styles/      # Theme, brand tokens (used lightly)
+VITE_API_BASE_URL=
+VITE_APP_NAME=Novella Admin
 ```
 
-## API access boundary
+`VITE_API_BASE_URL` is the public base URL for `apps/api` only. Every `VITE_*` variable is visible in the browser, so do not put connection strings, JWT signing keys, admin passwords, Cloudinary secrets, WhatsApp internal keys, MongoDB URIs, pairing tokens, payment webhook secrets, or provider secret keys here.
 
-The admin calls **only `apps/api`**. It must **never** call `apps/whatsapp` directly.
-Any WhatsApp connection/status or pairing visibility is proxied through `apps/api`.
+## Local Development
 
-**Raw secrets must never be shown in the admin.** The admin only ever sees
-configured/not-configured status — never raw WhatsApp internal secrets, connection
-strings, or payment secrets.
+```powershell
+npm install
+npm run dev
+```
 
-## Environment variables
+The Vite dev server runs on `http://localhost:5173`. The backend must allow this origin through CORS.
 
-Copy `.env.example` to `.env.local` (git-ignored). All admin variables are public
-(`VITE_*`) and must contain **no secrets**.
+## Build, Test, Audit
 
-- `VITE_API_BASE_URL` — base URL of `apps/api` (**required to boot**).
-- `VITE_APP_NAME` — display name (default `Novella Admin`).
+```powershell
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm audit
+npm audit --omit=dev
+```
 
-## Local development
+Production output is written to `dist`.
 
-- Runs on `http://localhost:5173`.
-- Deployment target: **Vercel**.
+## API Boundary
+
+- Admin calls only `apps/api`.
+- Admin never calls `apps/whatsapp` directly.
+- Admin never connects directly to SQL Server, MongoDB, Cloudinary, payment providers, shipping providers, or the WhatsApp sidecar.
+- WhatsApp status, send test, retry, logs, and settings are proxied through `/api/admin/whatsapp/*`.
+- Cloudinary uploads go through `/api/admin/uploads/image`; secrets stay server-side.
+
+## Authentication
+
+- Login uses `POST /api/admin/auth/login`.
+- The access token is attached as `Authorization: Bearer <token>` by the centralized API client.
+- Token state is kept in memory and mirrored to `sessionStorage` only for refresh survival.
+- `localStorage` is not used for admin tokens.
+- `/api/admin/auth/me` validates the session on startup.
+- 401 clears the token, clears query cache, and returns to `/login`.
+- 403 shows access denied without redirect loops.
+- Logout calls `/api/admin/auth/logout`, clears token state, clears query cache, and returns to login.
+
+Admin role is mandatory. Customer tokens cannot pass `/api/admin/auth/me` or the protected route guard.
+
+## Modules
+
+- Dashboard KPIs and alerts.
+- Products, images, variants, stock adjustment, inventory movements.
+- Categories with bilingual metadata.
+- Orders, shipping updates, status transitions, cancellation.
+- Customers and safe admin-only customer detail aggregates.
+- Coupons and two-delivered-orders settings.
+- Shipping governorates with customer fee and actual business cost.
+- Heroes.
+- WhatsApp settings, status, logs, retry, and test send.
+- Payment readiness with status-only secret indicators.
+- Expenses.
+- Sales, profit, products, categories, coupons, payments, governorates, expenses, and analytics reports.
+- Static pages and SEO/AEO/GEO editor.
+- Site and reminder settings.
+
+## Security Policy
+
+- No raw secrets are rendered.
+- Secret fields show configured/not-configured status only.
+- OTP WhatsApp message bodies are redacted.
+- Purchase cost, exact stock, actual shipping cost, and profit fields live only inside authenticated admin screens.
+- API errors are sanitized before display.
+- Rich content is edited as text and must be sanitized by the storefront rendering pipeline.
+- Unsafe direct provider/sidecar/database calls are prohibited.
+
+## Vercel
+
+`vercel.json` configures:
+
+- Build command: `npm run build`.
+- Output directory: `dist`.
+- SPA rewrites to `index.html` for direct route refresh.
+- No-index and security headers.
+- No-store for `index.html` and immutable caching for assets.
+
+Set `VITE_API_BASE_URL` and `VITE_APP_NAME` in Vercel project settings. Configure `apps/api` production CORS with the final admin Vercel/custom domain.
+
+## Credential-Dependent Features
+
+- Live Cloudinary upload requires backend Cloudinary credentials.
+- Live WhatsApp connection/send requires configured backend sidecar settings and reachable sidecar.
+- Online payment provider activation requires provider credentials/configuration in backend environment.
+- The admin never stores or submits raw operational secrets from the browser.

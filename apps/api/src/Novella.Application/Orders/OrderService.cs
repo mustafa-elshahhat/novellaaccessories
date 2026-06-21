@@ -67,6 +67,12 @@ public sealed class OrderService
     {
         var q = _db.Orders.AsNoTracking().AsQueryable();
         if (query.Status is { } st) q = q.Where(o => o.Status == st);
+        if (query.PaymentMethod is { } pm) q = q.Where(o => o.PaymentMethod == pm);
+        if (!string.IsNullOrWhiteSpace(query.Governorate))
+        {
+            var governorate = query.Governorate.Trim();
+            q = q.Where(o => o.GovernorateNameAr.Contains(governorate) || o.GovernorateNameEn.Contains(governorate));
+        }
         if (query.From is { } from) q = q.Where(o => o.CreatedAt >= from);
         if (query.To is { } to) q = q.Where(o => o.CreatedAt <= to);
         if (!string.IsNullOrWhiteSpace(query.Search))

@@ -42,6 +42,10 @@ public sealed class AdminReportsController : ControllerBase
     public async Task<IActionResult> Governorates([FromQuery] ReportRange range, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
         => Ok(await _reports.GovernoratesAsync(Win(range, from, to), ct));
 
+    [HttpGet("expenses")]
+    public async Task<IActionResult> Expenses([FromQuery] ReportRange range, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+        => Ok(await _reports.ExpensesAsync(Win(range, from, to), ct));
+
     [HttpGet("analytics")]
     public async Task<IActionResult> Analytics([FromQuery] ReportRange range, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
         => Ok(await _reports.AnalyticsAsync(Win(range, from, to), ct));

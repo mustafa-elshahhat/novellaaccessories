@@ -3,6 +3,7 @@ using FluentAssertions;
 using Novella.Application.Cart;
 using Novella.Application.Catalog;
 using Novella.Application.Checkout;
+using Novella.Application.Customers;
 using Novella.Application.Orders;
 using Novella.Application.Payments;
 using Novella.Application.Shipping;
@@ -66,6 +67,9 @@ public class LeakageContractTests
             new object[] { typeof(AdminProductDto) },
             new object[] { typeof(AdminVariantDto) },
             new object[] { typeof(AdminCategoryDto) },
+            new object[] { typeof(AdminCustomerListItemDto) },
+            new object[] { typeof(AdminCustomerDetailDto) },
+            new object[] { typeof(PaymentReadinessDto) },
             new object[] { typeof(WhatsAppSettingsDto) },
             new object[] { typeof(WhatsAppStatusDto) },
             new object[] { typeof(WhatsAppMessageLogDto) }

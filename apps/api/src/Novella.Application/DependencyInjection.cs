@@ -5,6 +5,7 @@ using Novella.Application.Cart;
 using Novella.Application.Catalog;
 using Novella.Application.Checkout;
 using Novella.Application.Content;
+using Novella.Application.Customers;
 using Novella.Application.Discounts;
 using Novella.Application.Expenses;
 using Novella.Application.Orders;
@@ -42,6 +43,7 @@ public static class DependencyInjection
 
         services.AddScoped<ShippingService>();
         services.AddScoped<PaymentService>();
+        services.AddScoped<PaymentAdminService>();
         services.AddScoped<UploadService>();
 
         services.AddScoped<AnalyticsService>();
@@ -52,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<ContentService>();
         services.AddScoped<ReportService>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<CustomerAdminService>();
 
         return services;
     }

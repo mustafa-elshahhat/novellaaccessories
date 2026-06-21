@@ -98,7 +98,7 @@ public sealed class WhatsAppAdminService
         var items = await q.OrderByDescending(m => m.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize).Take(query.PageSize)
             .Select(m => new WhatsAppMessageLogDto(m.Id, m.CustomerId, m.PhoneNumber, m.MessageType, m.TemplateKey,
-                m.MessageBody, m.Status, m.FailureReason, m.RetryCount, m.SentAt, m.CreatedAt))
+                m.MessageType == WhatsAppMessageType.Otp ? null : m.MessageBody, m.Status, m.FailureReason, m.RetryCount, m.SentAt, m.CreatedAt))
             .ToListAsync(ct);
         return new PagedResult<WhatsAppMessageLogDto> { Items = items, Page = query.Page, PageSize = query.PageSize, TotalCount = total };
     }
@@ -107,7 +107,7 @@ public sealed class WhatsAppAdminService
     {
         var log = await _messenger.RetryAsync(id, ct);
         return new WhatsAppMessageLogDto(log.Id, log.CustomerId, log.PhoneNumber, log.MessageType, log.TemplateKey,
-            log.MessageBody, log.Status, log.FailureReason, log.RetryCount, log.SentAt, log.CreatedAt);
+            log.MessageType == WhatsAppMessageType.Otp ? null : log.MessageBody, log.Status, log.FailureReason, log.RetryCount, log.SentAt, log.CreatedAt);
     }
 
     public async Task<WhatsAppMessageLogDto> SendTestAsync(WhatsAppTestRequest req, CancellationToken ct)

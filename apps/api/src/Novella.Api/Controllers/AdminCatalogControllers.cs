@@ -32,7 +32,7 @@ public sealed class AdminProductsController : ControllerBase
     private readonly CatalogAdminService _svc;
     public AdminProductsController(CatalogAdminService svc) => _svc = svc;
 
-    [HttpGet] public async Task<IActionResult> List([FromQuery] PageQuery query, [FromQuery] string? search, CancellationToken ct) => Ok(await _svc.GetProductsAsync(query, search, ct));
+    [HttpGet] public async Task<IActionResult> List([FromQuery] PageQuery query, [FromQuery] string? search, [FromQuery] Guid? categoryId, [FromQuery] bool? isActive, [FromQuery] bool? isFeatured, CancellationToken ct) => Ok(await _svc.GetProductsAsync(query, search, categoryId, isActive, isFeatured, ct));
     [HttpGet("{id:guid}")] public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await _svc.GetProductAsync(id, ct));
     [HttpPost] public async Task<IActionResult> Create([FromBody] ProductUpsertRequest req, CancellationToken ct) => Ok(await _svc.CreateProductAsync(req, ct));
     [HttpPut("{id:guid}")] public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpsertRequest req, CancellationToken ct) => Ok(await _svc.UpdateProductAsync(id, req, ct));
@@ -61,4 +61,5 @@ public sealed class AdminVariantsController : ControllerBase
     [HttpDelete("{variantId:guid}")] public async Task<IActionResult> Delete(Guid variantId, CancellationToken ct) { await _svc.DeleteVariantAsync(variantId, ct); return Ok(new { success = true }); }
     [HttpPatch("{variantId:guid}/stock")] public async Task<IActionResult> Stock(Guid variantId, [FromBody] StockAdjustRequest req, CancellationToken ct) => Ok(await _svc.AdjustStockAsync(variantId, req, _user.AdminId, ct));
     [HttpPatch("{variantId:guid}/status")] public async Task<IActionResult> Status(Guid variantId, [FromBody] StatusRequest req, CancellationToken ct) { await _svc.SetVariantStatusAsync(variantId, req.IsActive, ct); return Ok(new { success = true }); }
+    [HttpGet("{variantId:guid}/movements")] public async Task<IActionResult> Movements(Guid variantId, CancellationToken ct) => Ok(await _svc.GetInventoryMovementsAsync(variantId, ct));
 }

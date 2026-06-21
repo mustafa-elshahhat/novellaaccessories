@@ -49,7 +49,9 @@ public sealed record CategoryUpsertRequest(
 
 public sealed record AdminCategoryDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
-    string? ImageUrl, string? ImagePublicId, int SortOrder, bool IsActive, int ProductCount);
+    string? ImageUrl, string? ImagePublicId, int SortOrder, bool IsActive, int ProductCount,
+    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
+    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
 
 public sealed record ProductUpsertRequest(
     Guid CategoryId, string NameAr, string NameEn, string? SlugAr, string? SlugEn,
@@ -82,6 +84,7 @@ public sealed record AdminVariantDto(
     int StockQuantity, decimal? PurchasePriceOverride, decimal? SellingPriceOverride, bool IsActive);
 
 public sealed record StockAdjustRequest(int NewStockQuantity, string? Reason);
+public sealed record InventoryMovementDto(Guid Id, Guid ProductVariantId, Guid? OrderId, string MovementType, int Quantity, string? Reason, DateTime CreatedAt, Guid? CreatedByAdminId);
 public sealed record StatusRequest(bool IsActive);
 public sealed record ReorderRequest(IReadOnlyList<ReorderItem> Items);
 public sealed record ReorderItem(Guid Id, int SortOrder);

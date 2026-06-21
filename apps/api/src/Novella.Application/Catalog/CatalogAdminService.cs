@@ -23,14 +23,19 @@ public sealed class CatalogAdminService
     public async Task<IReadOnlyList<AdminCategoryDto>> GetCategoriesAsync(CancellationToken ct)
         => await _db.Categories.AsNoTracking().OrderBy(c => c.SortOrder)
             .Select(c => new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
-                c.SortOrder, c.IsActive, c.Products.Count))
+                c.SortOrder, c.IsActive, c.Products.Count,
+                c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
+                c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn))
             .ToListAsync(ct);
 
     public async Task<AdminCategoryDto> GetCategoryAsync(Guid id, CancellationToken ct)
     {
         var c = await _db.Categories.AsNoTracking().Include(x => x.Products).FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw AppException.NotFound("Category not found.");
-        return new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId, c.SortOrder, c.IsActive, c.Products.Count);
+        return new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
+            c.SortOrder, c.IsActive, c.Products.Count,
+            c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
+            c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn);
     }
 
     public async Task<AdminCategoryDto> CreateCategoryAsync(CategoryUpsertRequest req, CancellationToken ct)
@@ -101,9 +106,12 @@ public sealed class CatalogAdminService
 
     // ---------- Products ----------
 
-    public async Task<PagedResult<AdminProductDto>> GetProductsAsync(PageQuery query, string? search, CancellationToken ct)
+    public async Task<PagedResult<AdminProductDto>> GetProductsAsync(PageQuery query, string? search, Guid? categoryId, bool? isActive, bool? isFeatured, CancellationToken ct)
     {
         var q = _db.Products.AsNoTracking().Include(p => p.Variants).Include(p => p.Images).AsQueryable();
+        if (categoryId is { } cat) q = q.Where(p => p.CategoryId == cat);
+        if (isActive is { } active) q = q.Where(p => p.IsActive == active);
+        if (isFeatured is { } featured) q = q.Where(p => p.IsFeatured == featured);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
@@ -330,6 +338,14 @@ public sealed class CatalogAdminService
         v.IsActive = isActive; v.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyList<InventoryMovementDto>> GetInventoryMovementsAsync(Guid variantId, CancellationToken ct)
+        => await _db.InventoryMovements.AsNoTracking()
+            .Where(m => m.ProductVariantId == variantId)
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(100)
+            .Select(m => new InventoryMovementDto(m.Id, m.ProductVariantId, m.OrderId, m.MovementType.ToString(), m.Quantity, m.Reason, m.CreatedAt, m.CreatedByAdminId))
+            .ToListAsync(ct);
 
     // ---------- helpers ----------
 

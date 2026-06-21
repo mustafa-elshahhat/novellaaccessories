@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Novella.Application.Abstractions;
+using Novella.Domain.Entities;
 using Novella.Domain.Enums;
 
 namespace Novella.Application.Reports;
@@ -42,9 +43,18 @@ public sealed record CategoryReportRowDto(Guid CategoryId, string CategoryNameEn
 public sealed record CouponReportRowDto(Guid CouponId, string Code, int TimesUsed, decimal TotalDiscount);
 public sealed record PaymentReportRowDto(PaymentMethod Method, int Orders, decimal Revenue, decimal Commissions);
 public sealed record GovernorateReportRowDto(string GovernorateNameEn, int Orders, decimal ShippingCollected, decimal ActualShippingCost, decimal ShippingMargin);
+public sealed record ExpenseReportRowDto(ExpenseCategory Category, decimal Amount, int Count);
+public sealed record AnalyticsBreakdownRowDto(string Label, int Count);
 public sealed record AnalyticsReportDto(
     int Sessions, int UniqueVisitors, int CheckoutStartedSessions, int OrderPlacedSessions, int DeliveredVisitors,
-    decimal VisitToOrderConversion, decimal CheckoutToOrderConversion, decimal OrderToDeliveredConversion);
+    decimal VisitToOrderConversion, decimal CheckoutToOrderConversion, decimal OrderToDeliveredConversion,
+    int ProductViews, int AddToCartEvents,
+    IReadOnlyList<AnalyticsBreakdownRowDto> TrafficSources,
+    IReadOnlyList<AnalyticsBreakdownRowDto> UtmMediums,
+    IReadOnlyList<AnalyticsBreakdownRowDto> UtmCampaigns,
+    IReadOnlyList<AnalyticsBreakdownRowDto> Referrers,
+    IReadOnlyList<AnalyticsBreakdownRowDto> DeviceTypes,
+    IReadOnlyList<AnalyticsBreakdownRowDto> Languages);
 
 /// <summary>
 /// Admin reports. Final profit prefers Delivered orders and uses order-item snapshots (never
@@ -166,6 +176,18 @@ public sealed class ReportService
                 g.Sum(o => o.CustomerPaidShippingFee), g.Sum(o => o.ActualShippingCost), g.Sum(o => o.ShippingMargin)))
             .OrderByDescending(r => r.ShippingMargin).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<ExpenseReportRowDto>> ExpensesAsync(DateWindow w, CancellationToken ct)
+    {
+        var expenses = await _db.Expenses.AsNoTracking()
+            .Where(e => e.ExpenseDate >= w.FromUtc && e.ExpenseDate < w.ToUtc)
+            .Select(e => new { e.Category, e.Amount })
+            .ToListAsync(ct);
+
+        return expenses.GroupBy(e => e.Category)
+            .Select(g => new ExpenseReportRowDto(g.Key, g.Sum(x => x.Amount), g.Count()))
+            .OrderByDescending(r => r.Amount).ToList();
+    }
+
     public async Task<AnalyticsReportDto> AnalyticsAsync(DateWindow w, CancellationToken ct)
     {
         var sessions = _db.AnalyticsSessions.AsNoTracking().Where(s => s.StartedAt >= w.FromUtc && s.StartedAt < w.ToUtc);
@@ -176,6 +198,8 @@ public sealed class ReportService
         var events = _db.AnalyticsEvents.AsNoTracking().Where(e => sessionIds.Contains(e.SessionId));
         var checkoutSessions = await events.Where(e => e.EventType == AnalyticsEventType.CheckoutStarted).Select(e => e.SessionId).Distinct().CountAsync(ct);
         var orderSessions = await sessions.CountAsync(s => s.ConvertedOrderId != null, ct);
+        var productViews = await events.CountAsync(e => e.EventType == AnalyticsEventType.ProductView, ct);
+        var addToCart = await events.CountAsync(e => e.EventType == AnalyticsEventType.AddToCart, ct);
 
         var deliveredVisitors = await (from s in sessions
                                        join o in _db.Orders.AsNoTracking() on s.ConvertedOrderId equals o.Id
@@ -184,7 +208,25 @@ public sealed class ReportService
 
         decimal Ratio(int num, int den) => den == 0 ? 0m : Math.Round((decimal)num / den, 4);
 
+        async Task<IReadOnlyList<AnalyticsBreakdownRowDto>> BreakdownAsync(string field)
+        {
+            IQueryable<IGrouping<string, AnalyticsSession>> grouped = field switch
+            {
+                "medium" => sessions.Where(s => s.UtmMedium != null).GroupBy(s => s.UtmMedium!),
+                "campaign" => sessions.Where(s => s.UtmCampaign != null).GroupBy(s => s.UtmCampaign!),
+                "referrer" => sessions.Where(s => s.Referrer != null).GroupBy(s => s.Referrer!),
+                "device" => sessions.Where(s => s.DeviceType != null).GroupBy(s => s.DeviceType!),
+                "language" => sessions.Where(s => s.Language != null).GroupBy(s => s.Language!),
+                _ => sessions.Where(s => s.UtmSource != null).GroupBy(s => s.UtmSource!)
+            };
+            return await grouped.Select(g => new AnalyticsBreakdownRowDto(g.Key, g.Count()))
+                .OrderByDescending(r => r.Count).Take(20).ToListAsync(ct);
+        }
+
         return new AnalyticsReportDto(totalSessions, uniqueVisitors, checkoutSessions, orderSessions, deliveredVisitors,
-            Ratio(orderSessions, totalSessions), Ratio(orderSessions, checkoutSessions), Ratio(deliveredVisitors, uniqueVisitors));
+            Ratio(orderSessions, totalSessions), Ratio(orderSessions, checkoutSessions), Ratio(deliveredVisitors, uniqueVisitors),
+            productViews, addToCart,
+            await BreakdownAsync("source"), await BreakdownAsync("medium"), await BreakdownAsync("campaign"),
+            await BreakdownAsync("referrer"), await BreakdownAsync("device"), await BreakdownAsync("language"));
     }
 }

@@ -53,6 +53,8 @@ public sealed record UpdateShippingRequest(string? ShippingProviderName, string?
 public sealed class AdminOrderListQuery : PageQuery
 {
     public OrderStatus? Status { get; set; }
+    public PaymentMethod? PaymentMethod { get; set; }
+    public string? Governorate { get; set; }
     public string? Search { get; set; }
     public DateTime? From { get; set; }
     public DateTime? To { get; set; }
