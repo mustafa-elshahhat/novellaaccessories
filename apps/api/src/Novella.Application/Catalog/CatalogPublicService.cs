@@ -59,6 +59,12 @@ public sealed class CatalogPublicService
         if (query.Featured is true)
             q = q.Where(p => p.IsFeatured);
 
+        // Active product-discount filter (mirrors PricingCalculator.IsProductDiscountActive) for /offers.
+        if (query.HasDiscount is true)
+            q = q.Where(p => p.ProductDiscountPercentage > 0m
+                && (p.ProductDiscountStartAt == null || now >= p.ProductDiscountStartAt)
+                && (p.ProductDiscountEndAt == null || now <= p.ProductDiscountEndAt));
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var s = query.Search.Trim();

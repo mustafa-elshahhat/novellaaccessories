@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* ----------------------------------------------------------------------------
+   Novella brand design tokens (soft luxury: warm ivory, champagne/rose gold,
+   mocha browns). Exposed as Tailwind v4 theme tokens -> utilities like
+   `bg-cream`, `text-mocha`, `border-bordergold`, `rounded-card`, `font-heading`.
+---------------------------------------------------------------------------- */
+@theme {
+  --color-ivory: #f4e8da;
+  --color-cream: #fff7ef;
+  --color-champagne: #c79a72;
+  --color-rosegold: #b98563;
+  --color-bronze: #9c6b4f;
+  --color-mocha: #5e4439;
+  --color-taupe: #8a7368;
+  --color-bordergold: #d7b08a;
+  --color-shadowbeige: #e8d6c4;
+  --color-deepbrown: #3f2d27;
+
+  /* Build-safe font stacks (no remote font fetch). Swap to next/font/local later
+     without changing these token names. */
+  --font-heading-ar: Tahoma, Arial, sans-serif;
+  --font-body-ar: Tahoma, Arial, sans-serif;
+  --font-heading-en: Georgia, "Times New Roman", serif;
+  --font-body-en: Inter, Arial, sans-serif;
+
+  --font-heading: var(--font-heading-en);
+  --font-body: var(--font-body-en);
+
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+
+  --shadow-soft: 0 4px 20px -8px rgba(94, 68, 57, 0.18);
+  --shadow-card: 0 2px 12px -6px rgba(94, 68, 57, 0.15);
+}
+
+/* Locale-aware font selection driven by <html lang>. */
+:root {
+  --font-heading: var(--font-heading-en);
+  --font-body: var(--font-body-en);
+}
+[lang="ar"] {
+  --font-heading: var(--font-heading-ar);
+  --font-body: var(--font-body-ar);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-mocha);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    color: var(--color-deepbrown);
+    line-height: 1.25;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-bronze);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip-to-content link (accessibility). */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: -3rem;
+  z-index: 100;
+  background: var(--color-bronze);
+  color: var(--color-cream);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Reserve space for the mobile bottom navigation so it never covers content. */
+.has-bottom-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) {
+  .has-bottom-nav {
+    padding-bottom: 0;
+  }
+}

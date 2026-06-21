@@ -82,8 +82,8 @@ public sealed class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest req, CancellationToken ct)
     {
-        var orderId = await _checkout.CreateOrderAsync(_user.RequireCustomerId(), req, ct);
-        return Ok(new { orderId });
+        var result = await _checkout.CreateOrderAsync(_user.RequireCustomerId(), req, ct);
+        return Ok(new { orderId = result.OrderId, orderNumber = result.OrderNumber });
     }
 
     [HttpGet("my")]

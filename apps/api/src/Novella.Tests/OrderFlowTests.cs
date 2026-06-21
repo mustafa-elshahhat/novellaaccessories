@@ -50,13 +50,17 @@ public class OrderFlowTests
 
         await g.Cart.AddItemAsync(customer.Id, new AddCartItemRequest(variant.Id, qty), default);
         var preview = await g.Checkout.PreviewAsync(customer.Id, new CheckoutPreviewRequest(gov.Id, null), default);
-        var orderId = await g.Checkout.CreateOrderAsync(customer.Id,
+        var result = await g.Checkout.CreateOrderAsync(customer.Id,
             new CreateOrderRequest(gov.Id, "Nasr City", "12 Street", null, PaymentMethod.CashOnDelivery, null), default);
 
-        var order = await g.Db.Db.Orders.FirstAsync(o => o.Id == orderId);
+        var order = await g.Db.Db.Orders.FirstAsync(o => o.Id == result.OrderId);
+        // Create-order returns both the id and the customer-facing order number.
+        result.OrderId.Should().Be(order.Id);
+        result.OrderNumber.Should().Be(order.OrderNumber);
+        result.OrderNumber.Should().NotBeNullOrWhiteSpace();
         // Preview total must equal the created order total.
         preview.GrandTotal.Should().Be(order.GrandTotal);
-        return (orderId, variant.Id, customer.Id);
+        return (result.OrderId, variant.Id, customer.Id);
     }
 
     [Fact]

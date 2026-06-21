@@ -37,7 +37,7 @@ public sealed class CheckoutService
         return computed.ToPreview();
     }
 
-    public async Task<Guid> CreateOrderAsync(Guid customerId, CreateOrderRequest req, CancellationToken ct)
+    public async Task<CreateOrderResult> CreateOrderAsync(Guid customerId, CreateOrderRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.CityDistrict) || string.IsNullOrWhiteSpace(req.DetailedAddress))
             throw AppException.Validation("City/district and detailed address are required.");
@@ -136,7 +136,7 @@ public sealed class CheckoutService
         }
 
         await _db.SaveChangesAsync(ct);
-        return order.Id;
+        return new CreateOrderResult(order.Id, order.OrderNumber);
     }
 
     private sealed class ComputedCheckout

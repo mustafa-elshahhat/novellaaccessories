@@ -8,6 +8,9 @@ public sealed record CreateOrderRequest(
     Guid GovernorateId, string CityDistrict, string DetailedAddress, string? Notes,
     PaymentMethod PaymentMethod, string? CouponCode);
 
+/// <summary>Result of order creation. Returns both the id and the customer-facing order number.</summary>
+public sealed record CreateOrderResult(Guid OrderId, string OrderNumber);
+
 public sealed record CheckoutLineDto(
     Guid ProductVariantId, string ProductNameAr, string ProductNameEn, string Sku, int Quantity,
     decimal OriginalUnitPrice, decimal FinalUnitPrice, decimal LineTotal);

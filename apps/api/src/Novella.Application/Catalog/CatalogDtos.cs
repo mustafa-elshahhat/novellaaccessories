@@ -36,6 +36,7 @@ public sealed class ProductListQuery : PageQuery
     public string? Search { get; set; }
     public string? CategorySlug { get; set; }
     public bool? Featured { get; set; }
+    public bool? HasDiscount { get; set; }
 }
 
 // ---------- Admin DTOs (may include cost/stock — admin only) ----------
