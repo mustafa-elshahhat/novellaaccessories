@@ -7,6 +7,7 @@ import { pick } from "@/lib/i18n/localize";
 import type { Locale } from "@/lib/i18n/routing";
 import type { PublicProductImage } from "@/lib/api/types";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { ImagePlaceholder } from "@/components/ui/image-placeholder";
 import { cn } from "@/lib/utils/cn";
 
 export function ProductGallery({
@@ -22,8 +23,8 @@ export function ProductGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-card border border-bordergold/40 bg-ivory text-taupe">
-        novella
+      <div className="aspect-square w-full overflow-hidden rounded-card border border-bordergold/40">
+        <ImagePlaceholder />
       </div>
     );
   }

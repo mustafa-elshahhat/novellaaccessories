@@ -25,6 +25,15 @@ public sealed class TestDatabase : IDisposable
         Db.Database.EnsureCreated();
     }
 
+    /// <summary>A fresh context over the same in-memory connection (mirrors a new scoped context).</summary>
+    public NovellaDbContext NewContext()
+    {
+        var options = new DbContextOptionsBuilder<NovellaDbContext>()
+            .UseSqlite(_connection)
+            .Options;
+        return new NovellaDbContext(options);
+    }
+
     public void Dispose()
     {
         Db.Dispose();

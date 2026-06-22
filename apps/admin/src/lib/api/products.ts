@@ -11,6 +11,7 @@ export const productsApi = {
   remove: (id: string) => api.delete<Success>(`/api/admin/products/${id}`),
   status: (id: string, isActive: boolean) => api.patch<Success>(`/api/admin/products/${id}/status`, { isActive }),
   addImage: (id: string, body: { url: string; publicId: string; altAr?: string; altEn?: string; isPrimary: boolean }) => api.post<ImageDto>(`/api/admin/products/${id}/images`, body),
+  updateImage: (id: string, imageId: string, body: { altAr?: string | null; altEn?: string | null; isPrimary?: boolean }) => api.patch<ImageDto>(`/api/admin/products/${id}/images/${imageId}`, body),
   removeImage: (id: string, imageId: string) => api.delete<Success & { publicId?: string }>(`/api/admin/products/${id}/images/${imageId}`),
   reorderImages: (id: string, items: { id: string; sortOrder: number }[]) => api.patch<Success>(`/api/admin/products/${id}/images/reorder`, { items }),
   uploadImage: (file: File, entityType = "products", entityId?: string) => {

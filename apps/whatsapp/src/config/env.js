@@ -8,6 +8,7 @@ import {
   DEFAULT_SEND_TIMEOUT_MS,
   CIRCUIT_BREAKER_THRESHOLD,
   CIRCUIT_BREAKER_COOLDOWN_MS,
+  MONGODB_DATABASE,
 } from './constants.js';
 
 export function loadConfig() {
@@ -30,6 +31,7 @@ export function loadConfig() {
     port: intFromEnv('PORT', DEFAULT_PORT, 1),
     nodeEnv: process.env.NODE_ENV ?? 'development',
     mongodbUri: process.env.MONGODB_URI ?? '',
+    mongodbDatabase: process.env.MONGODB_DB?.trim() || MONGODB_DATABASE,
     internalApiKey,
     pairingAdminToken,
     enablePairingUi: boolFromEnv('ENABLE_PAIRING_UI', false),

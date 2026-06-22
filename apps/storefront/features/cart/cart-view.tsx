@@ -14,6 +14,7 @@ import { bff } from "@/lib/api/bff-client";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useCart } from "@/features/cart/cart-provider";
 import { useToast } from "@/components/ui/toast";
+import { ImagePlaceholder } from "@/components/ui/image-placeholder";
 import { useErrorMessage } from "@/features/shared/use-error-message";
 import { Button } from "@/components/ui/button";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
@@ -183,9 +184,7 @@ export function CartView() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-taupe">
-                      novella
-                    </div>
+                    <ImagePlaceholder />
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-2">

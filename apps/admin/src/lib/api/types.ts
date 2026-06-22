@@ -13,6 +13,7 @@ export type UploadedImageDto = { url: string; publicId: string };
 
 export type Category = {
   id: Id; nameAr: string; nameEn: string; slugAr: string; slugEn: string; imageUrl?: string | null; imagePublicId?: string | null;
+  imageAltAr?: string | null; imageAltEn?: string | null;
   sortOrder: number; isActive: boolean; productCount: number;
   seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null;
   aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null;

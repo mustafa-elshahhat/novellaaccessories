@@ -40,6 +40,7 @@ public sealed class AdminProductsController : ControllerBase
     [HttpPatch("{id:guid}/status")] public async Task<IActionResult> Status(Guid id, [FromBody] StatusRequest req, CancellationToken ct) { await _svc.SetProductStatusAsync(id, req.IsActive, ct); return Ok(new { success = true }); }
 
     [HttpPost("{id:guid}/images")] public async Task<IActionResult> AddImage(Guid id, [FromBody] AddImageRequest req, CancellationToken ct) => Ok(await _svc.AddProductImageAsync(id, req, ct));
+    [HttpPatch("{id:guid}/images/{imageId:guid}")] public async Task<IActionResult> UpdateImage(Guid id, Guid imageId, [FromBody] UpdateImageRequest req, CancellationToken ct) => Ok(await _svc.UpdateProductImageAsync(id, imageId, req, ct));
     [HttpDelete("{id:guid}/images/{imageId:guid}")] public async Task<IActionResult> RemoveImage(Guid id, Guid imageId, CancellationToken ct) { var publicId = await _svc.RemoveProductImageAsync(id, imageId, ct); return Ok(new { success = true, publicId }); }
     [HttpPatch("{id:guid}/images/reorder")] public async Task<IActionResult> ReorderImages(Guid id, [FromBody] ReorderRequest req, CancellationToken ct) { await _svc.ReorderProductImagesAsync(id, req, ct); return Ok(new { success = true }); }
 

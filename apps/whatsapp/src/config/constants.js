@@ -10,3 +10,8 @@ export const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
 export const SERVICE_NAME = 'novella-whatsapp';
 export const SERVICE_VERSION = '1.0.0';
 
+// MongoDB defaults. The database name is fixed for the service; the connection
+// string is supplied via MONGODB_URI and must never be hardcoded here.
+export const MONGODB_DATABASE = 'novella_whatsapp';
+export const AUTH_STATE_COLLECTION = 'baileys_auth_state';
+

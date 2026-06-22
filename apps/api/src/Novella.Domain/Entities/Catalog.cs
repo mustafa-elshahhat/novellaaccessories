@@ -12,6 +12,8 @@ public class Category
     public string SlugEn { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public string? ImagePublicId { get; set; }
+    public string? ImageAltAr { get; set; }
+    public string? ImageAltEn { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
 

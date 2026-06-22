@@ -23,6 +23,7 @@ public sealed class CatalogAdminService
     public async Task<IReadOnlyList<AdminCategoryDto>> GetCategoriesAsync(CancellationToken ct)
         => await _db.Categories.AsNoTracking().OrderBy(c => c.SortOrder)
             .Select(c => new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
+                c.ImageAltAr, c.ImageAltEn,
                 c.SortOrder, c.IsActive, c.Products.Count,
                 c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
                 c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn))
@@ -33,6 +34,7 @@ public sealed class CatalogAdminService
         var c = await _db.Categories.AsNoTracking().Include(x => x.Products).FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw AppException.NotFound("Category not found.");
         return new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
+            c.ImageAltAr, c.ImageAltEn,
             c.SortOrder, c.IsActive, c.Products.Count,
             c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
             c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn);
@@ -50,6 +52,8 @@ public sealed class CatalogAdminService
             SlugEn = await UniqueCategorySlug(Slug.Ensure(req.SlugEn, req.NameEn), false, null, ct),
             ImageUrl = req.ImageUrl,
             ImagePublicId = req.ImagePublicId,
+            ImageAltAr = req.ImageAltAr,
+            ImageAltEn = req.ImageAltEn,
             SortOrder = req.SortOrder,
             IsActive = req.IsActive,
             SeoTitleAr = req.SeoTitleAr, SeoTitleEn = req.SeoTitleEn,
@@ -71,6 +75,7 @@ public sealed class CatalogAdminService
         c.SlugAr = await UniqueCategorySlug(Slug.Ensure(req.SlugAr, req.NameAr), true, id, ct);
         c.SlugEn = await UniqueCategorySlug(Slug.Ensure(req.SlugEn, req.NameEn), false, id, ct);
         c.ImageUrl = req.ImageUrl; c.ImagePublicId = req.ImagePublicId;
+        c.ImageAltAr = req.ImageAltAr; c.ImageAltEn = req.ImageAltEn;
         c.SortOrder = req.SortOrder; c.IsActive = req.IsActive;
         c.SeoTitleAr = req.SeoTitleAr; c.SeoTitleEn = req.SeoTitleEn;
         c.SeoDescriptionAr = req.SeoDescriptionAr; c.SeoDescriptionEn = req.SeoDescriptionEn;
@@ -232,6 +237,23 @@ public sealed class CatalogAdminService
             CreatedAt = _clock.UtcNow
         };
         _db.ProductImages.Add(img);
+        await _db.SaveChangesAsync(ct);
+        return new PublicProductImageDto(img.Id, img.Url, img.AltAr, img.AltEn, img.SortOrder, img.IsPrimary);
+    }
+
+    public async Task<PublicProductImageDto> UpdateProductImageAsync(Guid productId, Guid imageId, UpdateImageRequest req, CancellationToken ct)
+    {
+        var img = await _db.ProductImages.FirstOrDefaultAsync(i => i.Id == imageId && i.ProductId == productId, ct)
+            ?? throw AppException.NotFound("Image not found.");
+        img.AltAr = req.AltAr;
+        img.AltEn = req.AltEn;
+        if (req.IsPrimary == true && !img.IsPrimary)
+        {
+            var currentPrimaries = await _db.ProductImages.Where(i => i.ProductId == productId && i.IsPrimary).ToListAsync(ct);
+            foreach (var existing in currentPrimaries)
+                existing.IsPrimary = false;
+            img.IsPrimary = true;
+        }
         await _db.SaveChangesAsync(ct);
         return new PublicProductImageDto(img.Id, img.Url, img.AltAr, img.AltEn, img.SortOrder, img.IsPrimary);
     }

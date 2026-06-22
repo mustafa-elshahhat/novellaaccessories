@@ -4,11 +4,13 @@ import { Link } from "@/lib/i18n/navigation";
 import { pick, pickSlug } from "@/lib/i18n/localize";
 import type { Locale } from "@/lib/i18n/routing";
 import type { PublicCategory } from "@/lib/api/types";
+import { ImagePlaceholder } from "./image-placeholder";
 
 export function CategoryCard({ category }: { category: PublicCategory }) {
   const locale = useLocale() as Locale;
   const name = pick(locale, category.nameAr, category.nameEn);
   const slug = pickSlug(locale, category.slugAr, category.slugEn);
+  const imageAlt = pick(locale, category.imageAltAr, category.imageAltEn) || name;
 
   return (
     <Link
@@ -19,13 +21,13 @@ export function CategoryCard({ category }: { category: PublicCategory }) {
         {category.imageUrl ? (
           <Image
             src={category.imageUrl}
-            alt={name}
+            alt={imageAlt}
             fill
             sizes="(max-width: 640px) 50vw, 25vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-taupe">{name}</div>
+          <ImagePlaceholder />
         )}
       </div>
       <div className="p-3 text-center">

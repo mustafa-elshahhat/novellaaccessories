@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n/routing";
 import type { PublicProductListItem } from "@/lib/api/types";
 import { PriceDisplay } from "./price";
 import { DiscountBadge, AvailabilityBadge } from "./badges";
+import { ImagePlaceholder } from "./image-placeholder";
 
 export function ProductCard({ product }: { product: PublicProductListItem }) {
   const locale = useLocale() as Locale;
@@ -24,9 +25,7 @@ export function ProductCard({ product }: { product: PublicProductListItem }) {
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-taupe">
-            novella
-          </div>
+          <ImagePlaceholder />
         )}
         {product.hasDiscount && (
           <div className="absolute start-2 top-2">

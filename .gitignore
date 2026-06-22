@@ -22,6 +22,10 @@ pnpm-debug.log*
 .env.*.local
 !.env.example
 
+# Local .NET config overrides (real dev values live in user-secrets, never committed)
+appsettings.Development.local.json
+appsettings.*.local.json
+
 # IDE / OS
 .idea/
 .vscode/

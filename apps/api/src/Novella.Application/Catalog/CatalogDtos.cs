@@ -6,7 +6,7 @@ namespace Novella.Application.Catalog;
 
 public sealed record PublicCategoryDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
-    string? ImageUrl, int SortOrder,
+    string? ImageUrl, string? ImageAltAr, string? ImageAltEn, int SortOrder,
     string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn);
 
 public sealed record PublicVariantDto(
@@ -43,13 +43,13 @@ public sealed class ProductListQuery : PageQuery
 
 public sealed record CategoryUpsertRequest(
     string NameAr, string NameEn, string? SlugAr, string? SlugEn,
-    string? ImageUrl, string? ImagePublicId, int SortOrder, bool IsActive,
+    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive,
     string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
     string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
 
 public sealed record AdminCategoryDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
-    string? ImageUrl, string? ImagePublicId, int SortOrder, bool IsActive, int ProductCount,
+    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive, int ProductCount,
     string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
     string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
 
@@ -89,3 +89,4 @@ public sealed record StatusRequest(bool IsActive);
 public sealed record ReorderRequest(IReadOnlyList<ReorderItem> Items);
 public sealed record ReorderItem(Guid Id, int SortOrder);
 public sealed record AddImageRequest(string Url, string PublicId, string? AltAr, string? AltEn, bool IsPrimary);
+public sealed record UpdateImageRequest(string? AltAr, string? AltEn, bool? IsPrimary);

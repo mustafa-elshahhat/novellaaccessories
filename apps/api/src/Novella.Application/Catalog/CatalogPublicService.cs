@@ -20,7 +20,7 @@ public sealed class CatalogPublicService
         => await _db.Categories.AsNoTracking()
             .Where(c => c.IsActive)
             .OrderBy(c => c.SortOrder)
-            .Select(c => new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.SortOrder,
+            .Select(c => new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder,
                 c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn))
             .ToListAsync(ct);
 
@@ -29,7 +29,7 @@ public sealed class CatalogPublicService
         var c = await _db.Categories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.IsActive && (x.SlugAr == slug || x.SlugEn == slug), ct)
             ?? throw AppException.NotFound("Category not found.");
-        return new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.SortOrder,
+        return new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder,
             c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn);
     }
 

@@ -49,6 +49,8 @@ export interface PublicCategory {
   slugAr: string;
   slugEn: string;
   imageUrl: string | null;
+  imageAltAr?: string | null;
+  imageAltEn?: string | null;
   sortOrder: number;
   seoTitleAr?: string | null;
   seoTitleEn?: string | null;

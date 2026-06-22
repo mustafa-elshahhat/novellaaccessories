@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Enables `dotnet user-secrets` for local-only secrets (Cloudinary, etc.). This is a
+         non-secret identifier; secret VALUES live in %APPDATA%\Microsoft\UserSecrets and are never committed. -->
+    <UserSecretsId>novella-api-dev-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -47,7 +47,7 @@ export default async function HomePage({ params }: PageProps) {
 
   const home = await getHome();
 
-  const heroes = home.heroes.filter((h) => h.isActive);
+  const heroes = home.heroes.filter((h) => h.isActive && Boolean(h.imageUrl));
   const categories = home.categories;
   const featured = home.featuredProducts;
   const discounted = featured.filter((p) => p.hasDiscount).slice(0, 8);

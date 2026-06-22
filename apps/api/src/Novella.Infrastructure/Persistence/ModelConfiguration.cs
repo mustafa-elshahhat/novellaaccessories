@@ -55,6 +55,8 @@ internal static class ModelConfiguration
             e.Property(x => x.SlugAr).HasMaxLength(220);
             e.Property(x => x.SlugEn).HasMaxLength(220);
             e.Property(x => x.ImagePublicId).HasMaxLength(300);
+            e.Property(x => x.ImageAltAr).HasMaxLength(300);
+            e.Property(x => x.ImageAltEn).HasMaxLength(300);
             e.Property(x => x.SeoTitleAr).HasMaxLength(300);
             e.Property(x => x.SeoTitleEn).HasMaxLength(300);
             e.Property(x => x.SeoDescriptionAr).HasMaxLength(500);

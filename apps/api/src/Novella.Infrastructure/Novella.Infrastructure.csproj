@@ -5,6 +5,15 @@
     <ProjectReference Include="..\Novella.Domain\Novella.Domain.csproj" />
   </ItemGroup>
 
+  <!-- Development seed images (original brand assets). Copied next to the app so the seeder can read
+       them at runtime via AppContext.BaseDirectory. The .mjs generator is excluded (build tool only). -->
+  <ItemGroup>
+    <Content Include="SeedAssets\**\*.webp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>SeedAssets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />

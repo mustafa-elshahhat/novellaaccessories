@@ -47,6 +47,14 @@ public sealed class SeedOptions
     public string AdminUsername { get; set; } = "admin";
     public string? AdminPassword { get; set; }
     public string AdminDisplayName { get; set; } = "Store Admin";
+
+    /// <summary>
+    /// When <c>true</c>, the seeder populates a development catalog (sample products + variants) and,
+    /// when Cloudinary is configured, uploads development hero/category/product images. Core data
+    /// (admin, categories, governorates, static pages, settings) always seeds regardless. Defaults to
+    /// <c>false</c> so production never gets development products/images implicitly.
+    /// </summary>
+    public bool EnableDevelopmentCatalog { get; set; }
 }
 
 /// <summary>

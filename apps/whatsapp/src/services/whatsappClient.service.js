@@ -15,7 +15,7 @@ export class WhatsAppClientService {
   constructor(config, rateLimiter) {
     this.config = config;
     this.rateLimiter = rateLimiter;
-    this.authRepo = new WhatsappAuthRepository(config.mongodbUri);
+    this.authRepo = new WhatsappAuthRepository(config.mongodbUri, config.mongodbDatabase);
     this.sock = null;
     this.starting = null;
     this.state = config.mongodbUri ? 'initializing' : 'configuration_error';
@@ -39,7 +39,8 @@ export class WhatsAppClientService {
   async connect() {
     try {
       this.state = 'initializing';
-      await this.authRepo.ensureConnection();
+      const { database, collections } = await this.authRepo.bootstrap();
+      logger.info({ database, collections }, 'MongoDB connection verified; collections and indexes ready');
       const collection = this.authRepo.getCollection();
       const { state, saveCreds } = await useMongoAuthState(collection);
       const { version } = await fetchLatestBaileysVersion();
