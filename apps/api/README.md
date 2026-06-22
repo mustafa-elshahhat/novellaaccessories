@@ -73,8 +73,11 @@ or unsafe value. Development/Testing keep clearly-labelled local fallbacks.
 **Optional / feature-specific:**
 
 - `Auth__CookieDomain`
+- `Jwt__ExpiryDays` — customer token lifetime, default `7`.
+- `Jwt__AdminExpiryMinutes` — admin token lifetime, default `60` (bounded by the issuer).
 - `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret` — image storage.
 - `Payment__ActiveProvider`, `Payment__WebhookSecret`.
+- `ForwardedHeaders__ForwardLimit`, `ForwardedHeaders__TrustAllProxies` — proxy header handling for shared hosting. Prefer known/stable proxy configuration; trust-all is an operational fallback only when the app is reachable solely through the hosting proxy.
 
 ## Database migration & seeding
 

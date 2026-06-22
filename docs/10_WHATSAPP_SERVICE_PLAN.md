@@ -183,6 +183,8 @@ Fields:
 - Failure reason.
 - Retry count.
 - Sent date.
+
+OTP message bodies are masked before they are written to `WhatsAppMessageLogs`; admin APIs also return OTP bodies as `null`. OTP messages are not retried from stored logs because the plaintext code is intentionally unavailable at rest.
 - Created date.
 
 ## 10. MongoDB (Baileys Session Storage)

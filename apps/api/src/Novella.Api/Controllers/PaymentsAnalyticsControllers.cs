@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Novella.Api.Auth;
 using Novella.Application.Abstractions;
 using Novella.Application.Analytics;
@@ -48,6 +49,7 @@ public sealed class PaymentsController : ControllerBase
 
 [ApiController]
 [Route("api/analytics")]
+[EnableRateLimiting("analytics")]
 public sealed class AnalyticsController : ControllerBase
 {
     private readonly AnalyticsService _analytics;

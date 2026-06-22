@@ -43,22 +43,33 @@ public sealed class OrderService
         var order = await _db.Orders.AsNoTracking().Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.CustomerId == customerId && o.OrderNumber == orderNumber, ct)
             ?? throw AppException.NotFound("Order not found.");
-        return MapCustomer(order);
+        return MapCustomer(order!);
     }
 
     public async Task<CustomerOrderDto> CancelMyOrderAsync(Guid customerId, string orderNumber, CancelOrderRequest req, CancellationToken ct)
     {
-        var order = await _db.Orders.Include(o => o.Items)
-            .FirstOrDefaultAsync(o => o.CustomerId == customerId && o.OrderNumber == orderNumber, ct)
-            ?? throw AppException.NotFound("Order not found.");
+        Order? order = null;
+        try
+        {
+            await _db.ExecuteInTransactionAsync(async () =>
+            {
+                order = await _db.Orders.Include(o => o.Items)
+                    .FirstOrDefaultAsync(o => o.CustomerId == customerId && o.OrderNumber == orderNumber, ct)
+                    ?? throw AppException.NotFound("Order not found.");
 
-        if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed))
-            throw new AppException(ErrorCodes.OrderCannotBeCancelled,
-                "Order can only be cancelled while Pending or Confirmed.", 409);
+                if (order.Status is not (OrderStatus.Pending or OrderStatus.Confirmed))
+                    throw new AppException(ErrorCodes.OrderCannotBeCancelled,
+                        "Order can only be cancelled while Pending or Confirmed.", 409);
 
-        await CancelInternalAsync(order, req.Reason ?? "Cancelled by customer", ct);
-        await _db.SaveChangesAsync(ct);
-        return MapCustomer(order);
+                await CancelInternalAsync(order, req.Reason ?? "Cancelled by customer", ct);
+                await _db.SaveChangesAsync(ct);
+            }, ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new AppException(ErrorCodes.ConcurrencyConflict, "Order was changed by another operation. Refresh and try again.", 409);
+        }
+        return MapCustomer(order!);
     }
 
     // ---------- Admin ----------
@@ -100,59 +111,81 @@ public sealed class OrderService
 
     public async Task<AdminOrderDto> UpdateStatusAsync(Guid id, OrderStatus newStatus, CancellationToken ct)
     {
-        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id, ct)
-            ?? throw AppException.NotFound("Order not found.");
-
-        if (newStatus == OrderStatus.Cancelled)
+        Order? order = null;
+        try
         {
-            await CancelByAdminAsync(order, "Cancelled by admin", ct);
-            await _db.SaveChangesAsync(ct);
-            return MapAdmin(order);
+            await _db.ExecuteInTransactionAsync(async () =>
+            {
+                order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id, ct)
+                    ?? throw AppException.NotFound("Order not found.");
+
+                if (newStatus == OrderStatus.Cancelled)
+                {
+                    await CancelByAdminAsync(order, "Cancelled by admin", ct);
+                    await _db.SaveChangesAsync(ct);
+                    return;
+                }
+
+                if (!IsValidForwardTransition(order.Status, newStatus))
+                    throw new AppException(ErrorCodes.OrderInvalidTransition,
+                        $"Cannot move order from {order.Status} to {newStatus}.", 409);
+
+                var now = _clock.UtcNow;
+                switch (newStatus)
+                {
+                    case OrderStatus.Confirmed:
+                        order.Status = OrderStatus.Confirmed;
+                        order.ConfirmedAt = now;
+                        await DeductStockAsync(order, ct);
+                        await SendOrderConfirmationAsync(order, ct);
+                        break;
+                    case OrderStatus.Preparing:
+                        order.Status = OrderStatus.Preparing;
+                        order.PreparingAt = now;
+                        break;
+                    case OrderStatus.Shipped:
+                        order.Status = OrderStatus.Shipped;
+                        order.ShippedAt = now;
+                        break;
+                    case OrderStatus.Delivered:
+                        order.Status = OrderStatus.Delivered;
+                        order.DeliveredAt = now;
+                        order.PaymentStatus = order.PaymentMethod == PaymentMethod.CashOnDelivery ? PaymentStatus.Paid : order.PaymentStatus;
+                        break;
+                }
+                order.UpdatedAt = now;
+                await _db.SaveChangesAsync(ct);
+            }, ct);
         }
-
-        if (!IsValidForwardTransition(order.Status, newStatus))
-            throw new AppException(ErrorCodes.OrderInvalidTransition,
-                $"Cannot move order from {order.Status} to {newStatus}.", 409);
-
-        var now = _clock.UtcNow;
-        switch (newStatus)
+        catch (DbUpdateConcurrencyException)
         {
-            case OrderStatus.Confirmed:
-                order.Status = OrderStatus.Confirmed;
-                order.ConfirmedAt = now;
-                await DeductStockAsync(order, ct);
-                await SendOrderConfirmationAsync(order, ct);
-                break;
-            case OrderStatus.Preparing:
-                order.Status = OrderStatus.Preparing;
-                order.PreparingAt = now;
-                break;
-            case OrderStatus.Shipped:
-                order.Status = OrderStatus.Shipped;
-                order.ShippedAt = now;
-                break;
-            case OrderStatus.Delivered:
-                order.Status = OrderStatus.Delivered;
-                order.DeliveredAt = now;
-                order.PaymentStatus = order.PaymentMethod == PaymentMethod.CashOnDelivery ? PaymentStatus.Paid : order.PaymentStatus;
-                break;
+            throw new AppException(ErrorCodes.ConcurrencyConflict, "Order was changed by another operation. Refresh and try again.", 409);
         }
-        order.UpdatedAt = now;
-        await _db.SaveChangesAsync(ct);
 
         if (newStatus == OrderStatus.Delivered)
-            await _reward.EvaluateOnDeliveredAsync(order.CustomerId, ct);
+            await _reward.EvaluateOnDeliveredAsync(order!.CustomerId, ct);
 
-        return MapAdmin(order);
+        return MapAdmin(order!);
     }
 
     public async Task<AdminOrderDto> CancelByAdminEndpointAsync(Guid id, CancelOrderRequest req, CancellationToken ct)
     {
-        var order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id, ct)
-            ?? throw AppException.NotFound("Order not found.");
-        await CancelByAdminAsync(order, req.Reason ?? "Cancelled by admin", ct);
-        await _db.SaveChangesAsync(ct);
-        return MapAdmin(order);
+        Order? order = null;
+        try
+        {
+            await _db.ExecuteInTransactionAsync(async () =>
+            {
+                order = await _db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id, ct)
+                    ?? throw AppException.NotFound("Order not found.");
+                await CancelByAdminAsync(order, req.Reason ?? "Cancelled by admin", ct);
+                await _db.SaveChangesAsync(ct);
+            }, ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new AppException(ErrorCodes.ConcurrencyConflict, "Order was changed by another operation. Refresh and try again.", 409);
+        }
+        return MapAdmin(order!);
     }
 
     public async Task<AdminOrderDto> UpdateShippingAsync(Guid id, UpdateShippingRequest req, CancellationToken ct)
@@ -208,6 +241,8 @@ public sealed class OrderService
         foreach (var item in order.Items)
         {
             if (!variants.TryGetValue(item.ProductVariantId, out var variant)) continue;
+            if (variant.StockQuantity < item.Quantity)
+                throw new AppException(ErrorCodes.VariantOutOfStock, "A selected variant no longer has enough stock.", 409);
             variant.StockQuantity -= item.Quantity;
             variant.UpdatedAt = _clock.UtcNow;
             _db.InventoryMovements.Add(new InventoryMovement

@@ -61,20 +61,20 @@ public sealed class JwtTokenService : IJwtTokenService
     public JwtTokenService(IOptions<JwtOptions> options) => _options = options.Value;
 
     public string CreateCustomerToken(Guid customerId, string phone, string fullName)
-        => Create(customerId, RoleCustomer, new[]
+        => Create(customerId, RoleCustomer, DateTime.UtcNow.AddDays(_options.ExpiryDays), new[]
         {
             new Claim(ClaimTypes.MobilePhone, phone),
             new Claim("name", fullName)
         });
 
     public string CreateAdminToken(Guid adminId, string username, string displayName)
-        => Create(adminId, RoleAdmin, new[]
+        => Create(adminId, RoleAdmin, DateTime.UtcNow.AddMinutes(Math.Clamp(_options.AdminExpiryMinutes, 5, 240)), new[]
         {
             new Claim("username", username),
             new Claim("name", displayName)
         });
 
-    private string Create(Guid subjectId, string role, IEnumerable<Claim> extra)
+    private string Create(Guid subjectId, string role, DateTime expiresAt, IEnumerable<Claim> extra)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -92,7 +92,7 @@ public sealed class JwtTokenService : IJwtTokenService
             audience: _options.Audience,
             claims: claims,
             notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddDays(_options.ExpiryDays),
+            expires: expiresAt,
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

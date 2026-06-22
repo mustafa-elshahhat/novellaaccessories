@@ -69,6 +69,10 @@ Images:           Cloudinary
 14. `14_MVP_BACKLOG.md` — Implementation backlog by phase.
 15. `15_REFERENCES.md` — External service references and verification notes.
 16. `16_IMPLEMENTATION_PROMPT.md` — A developer/agent implementation prompt.
+17. `17_FOLDER_PREPARATION_PLAN.md` — Monorepo folder and environment preparation plan.
+18. `18_BACKEND_IMPLEMENTATION_PLAN.md` — Backend implementation plan.
+19. `19_STOREFRONT_IMPLEMENTATION_PLAN.md` — Storefront implementation plan.
+20. `20_ADMIN_IMPLEMENTATION_PLAN.md` — Admin dashboard implementation plan.
 
 ## MVP Principle
 

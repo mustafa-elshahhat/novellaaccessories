@@ -34,6 +34,7 @@ public class WhatsAppTests
         client.Sends.Should().HaveCount(1);
         var log = await db.Db.WhatsAppMessageLogs.FirstAsync(l => l.Id == logId);
         log.Status.Should().Be(WhatsAppMessageStatus.Sent);
+        log.MessageBody.Should().Be("code ******");
         log.SentAt.Should().NotBeNull();
     }
 
@@ -106,5 +107,20 @@ public class WhatsAppTests
 
         var act = () => messenger.RetryAsync(logId, default);
         await act.Should().ThrowAsync<Application.Common.AppException>();
+    }
+
+    [Fact]
+    public async Task Otp_retry_is_blocked_because_plaintext_code_is_not_stored()
+    {
+        using var db = new TestDatabase();
+        var clock = new FakeClock();
+        TestSeed.EnableWhatsApp(db.Db, clock);
+        var client = new FakeWhatsAppClient { ShouldSucceed = false };
+        var messenger = new WhatsAppMessenger(db.Db, client, clock);
+
+        var (logId, _, _) = await messenger.SendAsync(WhatsAppMessageType.Otp, "otp", "201000000001", null, "code 123456", default);
+
+        var act = () => messenger.RetryAsync(logId, default);
+        (await act.Should().ThrowAsync<Application.Common.AppException>()).Which.Message.Should().Contain("never stored");
     }
 }

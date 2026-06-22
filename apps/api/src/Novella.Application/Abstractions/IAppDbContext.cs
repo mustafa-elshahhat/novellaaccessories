@@ -47,5 +47,6 @@ public interface IAppDbContext
     DbSet<AnalyticsSession> AnalyticsSessions { get; }
     DbSet<AnalyticsEvent> AnalyticsEvents { get; }
 
+    Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

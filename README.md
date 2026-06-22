@@ -102,6 +102,7 @@ files are git-ignored.
 ## Documentation
 
 The full planning pack lives in [`docs/`](docs/) (plans `01`–`20`), indexed by
-[`docs/README.md`](docs/README.md). This phase implements
-[`docs/17_FOLDER_PREPARATION_PLAN.md`](docs/17_FOLDER_PREPARATION_PLAN.md); backend,
-storefront, and admin implementation follow in plans `18`, `19`, and `20`.
+[`docs/README.md`](docs/README.md). The implemented system follows the connected
+architecture in those documents: storefront BFF and admin call `apps/api`, `apps/api`
+owns SQL Server business data and calls the WhatsApp sidecar, and MongoDB remains only
+for Baileys session state in `apps/whatsapp`.

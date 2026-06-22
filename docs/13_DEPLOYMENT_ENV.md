@@ -24,12 +24,15 @@ Recommended environments:
 ## 3. Storefront Environment Variables
 
 ```text
-NEXT_PUBLIC_API_BASE_URL=
+API_BASE_URL=
 NEXT_PUBLIC_SITE_URL=https://novellaaccessories.store
 NEXT_PUBLIC_DEFAULT_LOCALE=ar
 NEXT_PUBLIC_SUPPORTED_LOCALES=ar,en
 NEXT_PUBLIC_ANALYTICS_ENABLED=true
+NEXT_PUBLIC_WHATSAPP_SUPPORT_URL=
 ```
+
+`API_BASE_URL` is server-only. The storefront browser calls same-origin Next.js BFF route handlers under `/api/*`; those handlers forward to `apps/api`. Never expose the backend API URL as `NEXT_PUBLIC_API_BASE_URL`.
 
 ## 4. Admin Environment Variables
 
@@ -43,9 +46,13 @@ VITE_APP_NAME=Novella Admin
 ```text
 ASPNETCORE_ENVIRONMENT=Production
 ConnectionStrings__DefaultConnection=
+Database__AutoMigrate=false
+Database__AutoSeed=false
 Jwt__Issuer=
 Jwt__Audience=
 Jwt__SigningKey=
+Jwt__ExpiryDays=7
+Jwt__AdminExpiryMinutes=60
 Auth__CookieDomain=
 Cloudinary__CloudName=
 Cloudinary__ApiKey=
@@ -56,6 +63,8 @@ Payment__ActiveProvider=
 Payment__WebhookSecret=
 Cors__StorefrontOrigin=https://novellaaccessories.store
 Cors__AdminOrigin=
+ForwardedHeaders__ForwardLimit=2
+ForwardedHeaders__TrustAllProxies=false
 ```
 
 Admin origin depends on the final Vercel admin domain.
@@ -175,7 +184,7 @@ Use provider environment variables.
 
 ### Storefront on Vercel
 
-- Set API URL.
+- Set server-only `API_BASE_URL` to the deployed API origin; do not set `NEXT_PUBLIC_API_BASE_URL`.
 - Set site URL.
 - Configure domain.
 - Ensure sitemap and robots are generated.
@@ -189,8 +198,10 @@ Use provider environment variables.
 
 - Deploy ASP.NET Core app.
 - Configure SQL Server connection string.
-- Run migrations.
+- Run migrations against SQL Server before first traffic, or explicitly enable `Database__AutoMigrate=true` for a controlled one-time startup.
+- Run seed once with `Database__AutoSeed=true` and a real `Seed__AdminPassword`, then disable it unless the deployment process intentionally owns seeding.
 - Configure CORS.
+- Configure forwarded headers. Prefer known proxy configuration; use `ForwardedHeaders__TrustAllProxies=true` only when the shared host cannot provide stable proxy IPs and the app is not directly reachable except through that proxy.
 - Configure Cloudinary.
 - Configure WhatsApp service URL.
 
@@ -226,10 +237,11 @@ MVP should at least document:
 ## 15. Production Checklist
 
 - Database migrations applied.
-- Admin user created.
+- Admin user created through idempotent seed or admin bootstrap.
 - Default categories seeded.
 - Governorates seeded.
 - Static pages seeded.
+- `Database__AutoMigrate` / `Database__AutoSeed` returned to the intended steady-state values after one-time bootstrap.
 - Cloudinary configured.
 - MongoDB configured for the WhatsApp service (`MONGODB_URI` set, reachable).
 - WhatsApp service health check passes (`GET /health`).

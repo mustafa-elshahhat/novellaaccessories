@@ -48,6 +48,14 @@ Product responses include:
 - Variants visible to customer without exact stock quantity.
 - SEO/AEO/GEO fields.
 
+### Shipping
+
+```text
+GET /api/public/shipping/governorates
+```
+
+Returns the active governorates with customer-safe shipping fees only. Actual shipping cost and margin remain admin-only.
+
 ### Static Pages
 
 ```text
@@ -129,6 +137,7 @@ Order creation:
 - Revalidates everything.
 - Creates Pending order.
 - Stores all price snapshots.
+- Accepts an optional `idempotencyKey`; repeated submissions from the same customer with the same key return the original order instead of creating a duplicate.
 
 Cancellation:
 
@@ -314,6 +323,7 @@ GET /api/admin/reports/coupons
 GET /api/admin/reports/payments
 GET /api/admin/reports/governorates
 GET /api/admin/reports/analytics
+GET /api/admin/reports/expenses
 ```
 
 Filters:

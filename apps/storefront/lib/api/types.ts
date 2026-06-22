@@ -365,6 +365,7 @@ export interface CreateOrderRequest {
   notes?: string | null;
   paymentMethod: PaymentMethod;
   couponCode?: string | null;
+  idempotencyKey?: string | null;
 }
 
 /** Create-order response (backend returns orderNumber alongside orderId — see backend change #1). */

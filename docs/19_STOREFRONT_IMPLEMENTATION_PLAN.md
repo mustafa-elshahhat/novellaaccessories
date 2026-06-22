@@ -17,7 +17,7 @@
 - **Next.js** (App Router), TypeScript.
 - **i18n**: `ar` (RTL, default) + `en` (LTR) via `app/[locale]/`.
 - Server-rendered SEO metadata + structured data.
-- API integration with `apps/api` via `NEXT_PUBLIC_API_BASE_URL`.
+- API integration through same-origin Next.js BFF route handlers. The BFF reads server-only `API_BASE_URL` and forwards to `apps/api`; browser code never receives the backend origin.
 - Mobile-first responsive design; Cloudinary-optimized images.
 
 ---
@@ -29,13 +29,13 @@
 - [ ] Initialize Next.js App Router app under `apps/storefront`.
 - [ ] Configure i18n routing: `app/[locale]/` with `ar` default, `en` secondary; reject unknown locales.
 - [ ] Add `messages/ar.json` + `messages/en.json` translation scaffolding.
-- [ ] Build a typed API client in `lib/` reading `NEXT_PUBLIC_API_BASE_URL`.
+- [ ] Build a typed server API client in `lib/` reading server-only `API_BASE_URL`, plus BFF route handlers under `app/api/**` for browser calls.
 - [ ] Configure `next/image` for Cloudinary remote patterns.
 - [ ] Wire env from `apps/storefront/.env.example`.
 
 **Acceptance criteria:**
 - `/ar` and `/en` resolve; unknown locale 404s/redirects.
-- API client reads base URL from env; image domain configured.
+- Server API client reads `API_BASE_URL` from env; no `NEXT_PUBLIC_API_BASE_URL` is required; image domain configured.
 
 ---
 

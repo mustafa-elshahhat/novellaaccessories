@@ -165,7 +165,7 @@ Store snapshots:
 
 ## 13. Free Shipping Optional Setting
 
-Optional future setting:
+Implemented configurable setting:
 
 - Enable free shipping threshold.
 - Threshold amount.

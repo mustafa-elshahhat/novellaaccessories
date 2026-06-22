@@ -118,6 +118,7 @@ public class ProductVariant
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }
 
 /// <summary>Audit record of every stock change.</summary>

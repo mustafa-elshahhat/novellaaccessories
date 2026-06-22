@@ -170,6 +170,7 @@ ProductVariants
 - IsActive bit not null
 - CreatedAt datetime2 not null
 - UpdatedAt datetime2 null
+- RowVersion rowversion not null -- optimistic concurrency for stock changes
 ```
 
 ## InventoryMovements
@@ -215,6 +216,7 @@ CartItems
 Orders
 - Id uniqueidentifier PK
 - OrderNumber nvarchar(50) not null unique
+- IdempotencyKey nvarchar(128) null -- duplicate submit guard, unique per customer when present
 - CustomerId uniqueidentifier FK Customers
 - Status nvarchar(50) not null -- Pending, Confirmed, Preparing, Shipped, Delivered, Cancelled
 - CustomerName nvarchar(200) not null
@@ -246,6 +248,7 @@ Orders
 - CancellationReason nvarchar(500) null
 - CreatedAt datetime2 not null
 - UpdatedAt datetime2 null
+- RowVersion rowversion not null -- optimistic concurrency for status/stock transitions
 ```
 
 ## OrderItems
@@ -520,7 +523,7 @@ AnalyticsEvents
 - PageUrl nvarchar(max) null
 - ProductId uniqueidentifier null
 - OrderId uniqueidentifier null
-- MetadataJson nvarchar(max) null
+- MetadataJson nvarchar(2048) null -- server-sanitized, PII keys stripped
 - CreatedAt datetime2 not null
 ```
 
@@ -547,9 +550,13 @@ SiteSettings
 - Products.SlugAr unique.
 - Products.SlugEn unique.
 - ProductVariants.Sku unique.
+- ProductVariants.RowVersion optimistic concurrency token.
+- Orders.RowVersion optimistic concurrency token.
+- Orders.CustomerId + IdempotencyKey unique filtered where IdempotencyKey is not null.
 - Orders.CustomerId + CreatedAt.
 - Orders.Status + CreatedAt.
 - Orders.DeliveredAt.
+- Coupons.CustomerId + Source unique filtered for Source = TwoDeliveredOrders.
 - CouponUsages.CouponId.
 - CouponUsages.CustomerId.
 - AnalyticsSessions.StartedAt.

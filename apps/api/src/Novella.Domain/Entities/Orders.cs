@@ -10,6 +10,7 @@ public class Order
 {
     public Guid Id { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
+    public string? IdempotencyKey { get; set; }
     public Guid CustomerId { get; set; }
     public Customer? Customer { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
@@ -56,6 +57,8 @@ public class Order
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 }

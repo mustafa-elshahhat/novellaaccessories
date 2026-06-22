@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/lib/api/auth";
 import { onForbidden, onUnauthorized, setAccessToken } from "@/lib/api/client";
@@ -23,19 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthState["status"]>(() => sessionStorage.getItem(storageKey) ? "loading" : "anonymous");
   const [message, setMessage] = useState<string | null>(null);
 
-  const clearAuth = (reason?: string) => {
+  const clearAuth = useCallback((reason?: string) => {
     setAccessToken(null);
     sessionStorage.removeItem(storageKey);
     setAdmin(null);
     setStatus("anonymous");
     void queryClient.clear();
     if (reason) setMessage(reason);
-  };
+  }, [queryClient]);
 
   useEffect(() => {
     onUnauthorized(() => clearAuth("Your session has expired. Please sign in again."));
     onForbidden(() => setStatus("forbidden"));
-  });
+  }, [clearAuth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [clearAuth]);
 
   const value = useMemo<AuthState>(() => ({
     admin,
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearMessage() {
       setMessage(null);
     }
-  }), [admin, message, status, queryClient]);
+  }), [admin, message, status, clearAuth]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

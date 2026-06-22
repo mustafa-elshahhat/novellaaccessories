@@ -60,5 +60,26 @@ public class NovellaDbContext : DbContext, IAppDbContext
     {
         base.OnModelCreating(b);
         ModelConfiguration.Apply(b);
+
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            b.Entity<Order>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .HasDefaultValueSql("randomblob(8)");
+            b.Entity<ProductVariant>().Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .HasDefaultValueSql("randomblob(8)");
+        }
+    }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default)
+    {
+        var strategy = Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await Database.BeginTransactionAsync(cancellationToken);
+            await operation();
+            await tx.CommitAsync(cancellationToken);
+        });
     }
 }

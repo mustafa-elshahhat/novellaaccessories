@@ -95,7 +95,7 @@ describe('routes', () => {
 
       assert.equal(res.status, 200);
       assert.equal(res.body.ok, true);
-      assert.equal(res.body.service, 'reusable-whatsapp-service');
+      assert.equal(res.body.service, 'novella-whatsapp');
       assert.equal(res.body.whatsappState, 'connected');
     });
   });

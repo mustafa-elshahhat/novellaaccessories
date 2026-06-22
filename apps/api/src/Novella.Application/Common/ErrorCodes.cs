@@ -8,6 +8,7 @@ public static class ErrorCodes
     public const string Unauthorized = "UNAUTHORIZED";
     public const string Forbidden = "FORBIDDEN";
     public const string Conflict = "CONFLICT";
+    public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
     public const string Internal = "INTERNAL_ERROR";
 
     // Auth / OTP
@@ -33,6 +34,7 @@ public static class ErrorCodes
     // Orders
     public const string OrderCannotBeCancelled = "ORDER_CANNOT_BE_CANCELLED";
     public const string OrderInvalidTransition = "ORDER_INVALID_STATUS_TRANSITION";
+    public const string DuplicateOrderSubmission = "DUPLICATE_ORDER_SUBMISSION";
 
     // Payments / shipping
     public const string PaymentProviderNotActive = "PAYMENT_PROVIDER_NOT_ACTIVE";

@@ -39,6 +39,16 @@ public sealed class CheckoutService
 
     public async Task<CreateOrderResult> CreateOrderAsync(Guid customerId, CreateOrderRequest req, CancellationToken ct)
     {
+        var idempotencyKey = NormalizeIdempotencyKey(req.IdempotencyKey);
+        if (idempotencyKey is not null)
+        {
+            var existing = await _db.Orders.AsNoTracking()
+                .Where(o => o.CustomerId == customerId && o.IdempotencyKey == idempotencyKey)
+                .Select(o => new CreateOrderResult(o.Id, o.OrderNumber))
+                .FirstOrDefaultAsync(ct);
+            if (existing is not null) return existing;
+        }
+
         if (string.IsNullOrWhiteSpace(req.CityDistrict) || string.IsNullOrWhiteSpace(req.DetailedAddress))
             throw AppException.Validation("City/district and detailed address are required.");
 
@@ -50,93 +60,121 @@ public sealed class CheckoutService
             throw new AppException(ErrorCodes.PaymentProviderNotActive,
                 $"Payment method '{req.PaymentMethod}' is not active yet.", 409);
 
-        var computed = await ComputeAsync(customerId, req.GovernorateId, req.CouponCode, ct);
-
-        var now = _clock.UtcNow;
-        var order = new Order
+        CreateOrderResult? result = null;
+        try
         {
-            Id = Guid.NewGuid(),
-            OrderNumber = await GenerateOrderNumberAsync(ct),
-            CustomerId = customerId,
-            Status = OrderStatus.Pending,
-            CustomerName = customer.FullName,
-            CustomerPhone = customer.PhoneNumber, // from the verified account, never the client
-            GovernorateId = computed.Governorate.Id,
-            GovernorateNameAr = computed.Governorate.NameAr,
-            GovernorateNameEn = computed.Governorate.NameEn,
-            CityDistrict = req.CityDistrict,
-            DetailedAddress = req.DetailedAddress,
-            Notes = req.Notes,
-            ProductSubtotalBeforeDiscount = computed.Pricing.ProductSubtotalBeforeDiscount,
-            ProductDiscountTotal = computed.Pricing.ProductDiscountTotal,
-            CouponDiscountTotal = computed.Pricing.CouponDiscountTotal,
-            ProductSubtotalAfterDiscount = computed.Pricing.ProductSubtotalAfterAllDiscounts,
-            CustomerPaidShippingFee = computed.ShippingFee,
-            ActualShippingCost = computed.Governorate.ActualShippingCost,
-            ShippingMargin = computed.ShippingFee - computed.Governorate.ActualShippingCost,
-            GrandTotal = computed.GrandTotal,
-            PaymentMethod = req.PaymentMethod,
-            PaymentStatus = PaymentStatus.Pending,
-            CouponId = computed.Coupon?.Id,
-            CouponCode = computed.Coupon?.Code,
-            CreatedAt = now
-        };
-
-        foreach (var line in computed.Pricing.Lines)
+            await _db.ExecuteInTransactionAsync(async () =>
         {
-            var resolved = computed.Resolved.First(r => r.Variant.Id == line.ProductVariantId);
-            order.Items.Add(new OrderItem
+            if (idempotencyKey is not null)
+            {
+                var duplicate = await _db.Orders.AsNoTracking()
+                    .Where(o => o.CustomerId == customerId && o.IdempotencyKey == idempotencyKey)
+                    .Select(o => new CreateOrderResult(o.Id, o.OrderNumber))
+                    .FirstOrDefaultAsync(ct);
+                if (duplicate is not null)
+                {
+                    result = duplicate;
+                    return;
+                }
+            }
+
+            var computed = await ComputeAsync(customerId, req.GovernorateId, req.CouponCode, ct);
+            var now = _clock.UtcNow;
+            var order = new Order
+            {
+                Id = Guid.NewGuid(),
+                OrderNumber = await GenerateOrderNumberAsync(ct),
+                IdempotencyKey = idempotencyKey,
+                CustomerId = customerId,
+                Status = OrderStatus.Pending,
+                CustomerName = customer.FullName,
+                CustomerPhone = customer.PhoneNumber, // from the verified account, never the client
+                GovernorateId = computed.Governorate.Id,
+                GovernorateNameAr = computed.Governorate.NameAr,
+                GovernorateNameEn = computed.Governorate.NameEn,
+                CityDistrict = req.CityDistrict,
+                DetailedAddress = req.DetailedAddress,
+                Notes = req.Notes,
+                ProductSubtotalBeforeDiscount = computed.Pricing.ProductSubtotalBeforeDiscount,
+                ProductDiscountTotal = computed.Pricing.ProductDiscountTotal,
+                CouponDiscountTotal = computed.Pricing.CouponDiscountTotal,
+                ProductSubtotalAfterDiscount = computed.Pricing.ProductSubtotalAfterAllDiscounts,
+                CustomerPaidShippingFee = computed.ShippingFee,
+                ActualShippingCost = computed.Governorate.ActualShippingCost,
+                ShippingMargin = computed.ShippingFee - computed.Governorate.ActualShippingCost,
+                GrandTotal = computed.GrandTotal,
+                PaymentMethod = req.PaymentMethod,
+                PaymentStatus = PaymentStatus.Pending,
+                CouponId = computed.Coupon?.Id,
+                CouponCode = computed.Coupon?.Code,
+                CreatedAt = now
+            };
+
+            foreach (var line in computed.Pricing.Lines)
+            {
+                var resolved = computed.Resolved.First(r => r.Variant.Id == line.ProductVariantId);
+                order.Items.Add(new OrderItem
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    ProductId = line.ProductId,
+                    ProductVariantId = line.ProductVariantId,
+                    ProductNameAr = resolved.Product.NameAr,
+                    ProductNameEn = resolved.Product.NameEn,
+                    VariantNameAr = resolved.Variant.NameAr,
+                    VariantNameEn = resolved.Variant.NameEn,
+                    Sku = resolved.Variant.Sku,
+                    Quantity = line.Quantity,
+                    OriginalUnitSellingPrice = line.OriginalUnitSellingPrice,
+                    ProductDiscountPercentage = line.ProductDiscountPercentage,
+                    ProductDiscountAmountPerUnit = line.ProductDiscountAmountPerUnit,
+                    UnitPriceAfterProductDiscount = line.UnitPriceAfterProductDiscount,
+                    CouponDiscountAmountPerUnit = line.CouponDiscountAmountPerUnit,
+                    FinalUnitPrice = line.FinalUnitPrice,
+                    PurchaseCostPerUnit = line.PurchaseCostPerUnit,
+                    LineRevenue = line.LineRevenue,
+                    LineCost = line.LineCost,
+                    LineGrossProfit = line.LineGrossProfit
+                });
+            }
+
+            _db.Orders.Add(order);
+            if (computed.Coupon is not null)
+                _coupons.RecordUsage(computed.Coupon.Id, customerId, order.Id, computed.Pricing.CouponDiscountTotal);
+
+            _db.PaymentTransactions.Add(new PaymentTransaction
             {
                 Id = Guid.NewGuid(),
                 OrderId = order.Id,
-                ProductId = line.ProductId,
-                ProductVariantId = line.ProductVariantId,
-                ProductNameAr = resolved.Product.NameAr,
-                ProductNameEn = resolved.Product.NameEn,
-                VariantNameAr = resolved.Variant.NameAr,
-                VariantNameEn = resolved.Variant.NameEn,
-                Sku = resolved.Variant.Sku,
-                Quantity = line.Quantity,
-                OriginalUnitSellingPrice = line.OriginalUnitSellingPrice,
-                ProductDiscountPercentage = line.ProductDiscountPercentage,
-                ProductDiscountAmountPerUnit = line.ProductDiscountAmountPerUnit,
-                UnitPriceAfterProductDiscount = line.UnitPriceAfterProductDiscount,
-                CouponDiscountAmountPerUnit = line.CouponDiscountAmountPerUnit,
-                FinalUnitPrice = line.FinalUnitPrice,
-                PurchaseCostPerUnit = line.PurchaseCostPerUnit,
-                LineRevenue = line.LineRevenue,
-                LineCost = line.LineCost,
-                LineGrossProfit = line.LineGrossProfit
+                PaymentMethod = req.PaymentMethod,
+                ProviderName = "CashOnDelivery",
+                Status = PaymentStatus.Pending,
+                Amount = order.GrandTotal,
+                CreatedAt = now
             });
+
+            var cart = await _db.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.CustomerId == customerId, ct);
+            if (cart is not null)
+            {
+                _db.CartItems.RemoveRange(cart.Items);
+                cart.UpdatedAt = now;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            result = new CreateOrderResult(order.Id, order.OrderNumber);
+            }, ct);
+        }
+        catch (DbUpdateException) when (idempotencyKey is not null)
+        {
+            var existing = await _db.Orders.AsNoTracking()
+                .Where(o => o.CustomerId == customerId && o.IdempotencyKey == idempotencyKey)
+                .Select(o => new CreateOrderResult(o.Id, o.OrderNumber))
+                .FirstOrDefaultAsync(ct);
+            if (existing is not null) return existing;
+            throw;
         }
 
-        _db.Orders.Add(order);
-
-        if (computed.Coupon is not null)
-            _coupons.RecordUsage(computed.Coupon.Id, customerId, order.Id, computed.Pricing.CouponDiscountTotal);
-
-        // COD payment transaction (pending until delivery).
-        _db.PaymentTransactions.Add(new PaymentTransaction
-        {
-            Id = Guid.NewGuid(),
-            OrderId = order.Id,
-            PaymentMethod = req.PaymentMethod,
-            ProviderName = "CashOnDelivery",
-            Status = PaymentStatus.Pending,
-            Amount = order.GrandTotal,
-            CreatedAt = now
-        });
-
-        // Clear the customer's cart.
-        var cart = await _db.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.CustomerId == customerId, ct);
-        if (cart is not null)
-        {
-            _db.CartItems.RemoveRange(cart.Items);
-            cart.UpdatedAt = now;
-        }
-
-        await _db.SaveChangesAsync(ct);
-        return new CreateOrderResult(order.Id, order.OrderNumber);
+        return result!;
     }
 
     private sealed class ComputedCheckout
@@ -230,5 +268,14 @@ public sealed class CheckoutService
                 return candidate;
         }
         return $"NV-{_clock.UtcNow:yyyyMMddHHmmssfff}";
+    }
+
+    private static string? NormalizeIdempotencyKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        if (trimmed.Length > 128)
+            throw AppException.Validation("Idempotency key is too long.");
+        return trimmed;
     }
 }

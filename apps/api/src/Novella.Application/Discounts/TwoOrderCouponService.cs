@@ -67,7 +67,15 @@ public sealed class TwoOrderCouponService
             CreatedAt = now
         };
         _db.Coupons.Add(coupon);
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // The database enforces one reward coupon per customer; concurrent deliveries may race here.
+            return;
+        }
 
         if (settings.SendWhatsAppMessage)
         {

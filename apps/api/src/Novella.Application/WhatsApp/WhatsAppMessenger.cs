@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using Novella.Application.Abstractions;
 using Novella.Application.Common;
 using Novella.Domain.Entities;
@@ -67,7 +68,7 @@ public sealed class WhatsAppMessenger
             PhoneNumber = phone,
             MessageType = type,
             TemplateKey = templateKey,
-            MessageBody = body,
+            MessageBody = SafeBodyForStorage(type, body),
             Status = WhatsAppMessageStatus.Pending,
             RetryCount = 0,
             CreatedAt = now
@@ -121,6 +122,9 @@ public sealed class WhatsAppMessenger
             return log;
         }
 
+        if (log.MessageType == WhatsAppMessageType.Otp)
+            throw AppException.Conflict("OTP messages are not retried from logs because codes are never stored in plaintext.");
+
         var result = await _client.SendMessageAsync(log.PhoneNumber, log.MessageBody ?? string.Empty, ct);
         if (result.Success)
         {
@@ -136,4 +140,10 @@ public sealed class WhatsAppMessenger
         await _db.SaveChangesAsync(ct);
         return log;
     }
+
+    private static string? SafeBodyForStorage(WhatsAppMessageType type, string body)
+        => type == WhatsAppMessageType.Otp ? MaskOtp(body) : body;
+
+    private static string MaskOtp(string body)
+        => Regex.Replace(body, "\\d{4,}", m => new string('*', m.Length));
 }

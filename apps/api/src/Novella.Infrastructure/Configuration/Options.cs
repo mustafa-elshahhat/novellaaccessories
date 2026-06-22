@@ -8,6 +8,7 @@ public sealed class JwtOptions
     public string Audience { get; set; } = "novella-clients";
     public string SigningKey { get; set; } = string.Empty;
     public int ExpiryDays { get; set; } = 7;
+    public int AdminExpiryMinutes { get; set; } = 60;
 }
 
 /// <summary>Cloudinary options bound from the <c>Cloudinary</c> configuration section.</summary>

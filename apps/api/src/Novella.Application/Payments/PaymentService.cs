@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 using Novella.Application.Abstractions;
 using Novella.Application.Common;
 using Novella.Domain.Entities;
@@ -72,7 +74,7 @@ public sealed class PaymentService
         {
             var provided = headers.TryGetValue("x-webhook-secret", out var h) ? h
                 : headers.TryGetValue("X-Webhook-Secret", out var h2) ? h2 : null;
-            if (!string.Equals(provided, _options.WebhookSecret, StringComparison.Ordinal))
+            if (!FixedTimeEquals(provided, _options.WebhookSecret))
                 throw AppException.Unauthorized("Invalid webhook signature.");
         }
 
@@ -108,5 +110,14 @@ public sealed class PaymentService
         return await _db.PaymentTransactions.AsNoTracking().Where(t => t.OrderId == order.Id)
             .Select(t => new PaymentStatusDto(t.OrderId, order.OrderNumber, t.PaymentMethod, t.Status, t.Amount, t.ProviderTransactionReference))
             .ToListAsync(ct);
+    }
+
+    private static bool FixedTimeEquals(string? provided, string expected)
+    {
+        if (string.IsNullOrEmpty(provided)) return false;
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        return providedBytes.Length == expectedBytes.Length
+               && CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
     }
 }

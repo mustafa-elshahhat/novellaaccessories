@@ -81,6 +81,27 @@ public class OrderFlowTests
     }
 
     [Fact]
+    public async Task Create_order_with_same_idempotency_key_returns_existing_order()
+    {
+        var g = Build();
+        using var _ = g.Db;
+        var customer = TestSeed.AddCustomer(g.Db.Db, g.Clock);
+        var (_, variant) = TestSeed.AddProduct(g.Db.Db, g.Clock, stock: 10);
+        var gov = TestSeed.AddGovernorate(g.Db.Db, g.Clock);
+        await g.Cart.AddItemAsync(customer.Id, new AddCartItemRequest(variant.Id, 1), default);
+
+        var request = new CreateOrderRequest(gov.Id, "Nasr City", "12 Street", null,
+            PaymentMethod.CashOnDelivery, null, "checkout-submit-1");
+
+        var first = await g.Checkout.CreateOrderAsync(customer.Id, request, default);
+        var second = await g.Checkout.CreateOrderAsync(customer.Id, request, default);
+
+        second.Should().Be(first);
+        (await g.Db.Db.Orders.CountAsync(o => o.CustomerId == customer.Id)).Should().Be(1);
+        (await g.Db.Db.PaymentTransactions.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Pending_does_not_deduct_stock_but_Confirmed_deducts_exactly_once()
     {
         var g = Build();

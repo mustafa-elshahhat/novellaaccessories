@@ -57,6 +57,7 @@ export function CheckoutForm({
   );
 
   const [preview, setPreview] = useState<CheckoutPreview | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => newIdempotencyKey());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [reviewing, setReviewing] = useState(false);
   const [placing, setPlacing] = useState(false);
@@ -73,7 +74,10 @@ export function CheckoutForm({
 
   // Changing inputs invalidates a stale preview so totals never drift from what is ordered.
   function invalidatePreview() {
-    if (preview) setPreview(null);
+    if (preview) {
+      setPreview(null);
+      setIdempotencyKey(newIdempotencyKey());
+    }
   }
 
   async function review(event: FormEvent) {
@@ -110,6 +114,7 @@ export function CheckoutForm({
           notes: notes.trim() || null,
           paymentMethod: method,
           couponCode: coupon.trim() || null,
+          idempotencyKey,
         }),
       });
       analytics.track("OrderPlaced", { orderId: order.orderId });
@@ -121,6 +126,7 @@ export function CheckoutForm({
       setPlacing(false);
       // Force a fresh review (stock/price may have changed between preview and submit).
       setPreview(null);
+      setIdempotencyKey(newIdempotencyKey());
     }
   }
 
@@ -293,4 +299,8 @@ export function CheckoutForm({
       )}
     </div>
   );
+}
+
+function newIdempotencyKey() {
+  return globalThis.crypto?.randomUUID?.() ?? `checkout-${Date.now()}-${Math.random()}`;
 }

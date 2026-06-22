@@ -6,7 +6,7 @@ public sealed record CheckoutPreviewRequest(Guid GovernorateId, string? CouponCo
 
 public sealed record CreateOrderRequest(
     Guid GovernorateId, string CityDistrict, string DetailedAddress, string? Notes,
-    PaymentMethod PaymentMethod, string? CouponCode);
+    PaymentMethod PaymentMethod, string? CouponCode, string? IdempotencyKey = null);
 
 /// <summary>Result of order creation. Returns both the id and the customer-facing order number.</summary>
 public sealed record CreateOrderResult(Guid OrderId, string OrderNumber);

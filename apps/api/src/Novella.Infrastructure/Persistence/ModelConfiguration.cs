@@ -51,7 +51,11 @@ internal static class ModelConfiguration
             e.HasMany(x => x.Variants).WithOne(x => x.Product!).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        b.Entity<ProductVariant>(e => e.HasIndex(x => x.Sku).IsUnique());
+        b.Entity<ProductVariant>(e =>
+        {
+            e.HasIndex(x => x.Sku).IsUnique();
+            e.Property(x => x.RowVersion).IsRowVersion();
+        });
 
         b.Entity<InventoryMovement>(e =>
         {
@@ -78,12 +82,17 @@ internal static class ModelConfiguration
         b.Entity<Order>(e =>
         {
             e.HasIndex(x => x.OrderNumber).IsUnique();
+            e.HasIndex(x => new { x.CustomerId, x.IdempotencyKey })
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
             e.HasIndex(x => new { x.CustomerId, x.CreatedAt });
             e.HasIndex(x => new { x.Status, x.CreatedAt });
             e.HasIndex(x => x.DeliveredAt);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.PaymentMethod).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.PaymentStatus).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(128);
+            e.Property(x => x.RowVersion).IsRowVersion();
             e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(x => x.Items).WithOne(x => x.Order!).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -100,6 +109,9 @@ internal static class ModelConfiguration
         {
             e.HasIndex(x => x.Code).IsUnique();
             e.HasIndex(x => x.CustomerId);
+            e.HasIndex(x => new { x.CustomerId, x.Source })
+                .IsUnique()
+                .HasFilter("[CustomerId] IS NOT NULL AND [Source] = 'TwoDeliveredOrders'");
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.Source).HasConversion<string>().HasMaxLength(50);
             e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
@@ -172,6 +184,7 @@ internal static class ModelConfiguration
         b.Entity<AnalyticsEvent>(e =>
         {
             e.Property(x => x.EventType).HasConversion<string>().HasMaxLength(100);
+            e.Property(x => x.MetadataJson).HasMaxLength(2048);
             e.HasIndex(x => new { x.EventType, x.CreatedAt });
             e.HasIndex(x => x.SessionId);
             e.HasOne(x => x.Session).WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);

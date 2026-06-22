@@ -235,11 +235,12 @@ Cors__AdminOrigin=
 
 ### `apps/storefront/.env.example`
 ```text
-NEXT_PUBLIC_API_BASE_URL=
+API_BASE_URL=
 NEXT_PUBLIC_SITE_URL=https://novellaaccessories.store
 NEXT_PUBLIC_DEFAULT_LOCALE=ar
 NEXT_PUBLIC_SUPPORTED_LOCALES=ar,en
 NEXT_PUBLIC_ANALYTICS_ENABLED=true
+NEXT_PUBLIC_WHATSAPP_SUPPORT_URL=
 ```
 
 ### `apps/admin/.env.example`
