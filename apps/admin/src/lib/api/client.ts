@@ -43,7 +43,7 @@ async function parseJson(response: Response) {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!path.startsWith("/api/")) throw new ApiError(400, { code: "ADMIN_API_ONLY", message: "Admin requests must use the API boundary." });
+  if (!path.startsWith("/api/admin/")) throw new ApiError(400, { code: "ADMIN_API_ONLY", message: "Admin requests must use the admin API boundary." });
 
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);

@@ -32,6 +32,7 @@ public sealed class OrderService
 
     public async Task<IReadOnlyList<CustomerOrderDto>> GetMyOrdersAsync(Guid customerId, CancellationToken ct)
     {
+        await EnsureCustomerCanAccessOrdersAsync(customerId, ct);
         var orders = await _db.Orders.AsNoTracking().Include(o => o.Items)
             .Where(o => o.CustomerId == customerId)
             .OrderByDescending(o => o.CreatedAt).ToListAsync(ct);
@@ -40,6 +41,7 @@ public sealed class OrderService
 
     public async Task<CustomerOrderDto> GetMyOrderAsync(Guid customerId, string orderNumber, CancellationToken ct)
     {
+        await EnsureCustomerCanAccessOrdersAsync(customerId, ct);
         var order = await _db.Orders.AsNoTracking().Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.CustomerId == customerId && o.OrderNumber == orderNumber, ct)
             ?? throw AppException.NotFound("Order not found.");
@@ -48,6 +50,7 @@ public sealed class OrderService
 
     public async Task<CustomerOrderDto> CancelMyOrderAsync(Guid customerId, string orderNumber, CancelOrderRequest req, CancellationToken ct)
     {
+        await EnsureCustomerCanAccessOrdersAsync(customerId, ct);
         Order? order = null;
         try
         {
@@ -297,6 +300,16 @@ public sealed class OrderService
             ["payment_method"] = order.PaymentMethod.ToString()
         });
         await _whatsApp.SendAsync(WhatsAppMessageType.OrderConfirmation, "order_confirmation", order.CustomerPhone, order.CustomerId, body, ct);
+    }
+
+    private async Task EnsureCustomerCanAccessOrdersAsync(Guid customerId, CancellationToken ct)
+    {
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
+            ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
+        if (!customer.IsPhoneVerified)
+            throw new AppException(ErrorCodes.PhoneNotVerified, "Phone number is not verified.", 403);
     }
 
     private static CustomerOrderDto MapCustomer(Order o) => new(

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getProducts, searchProducts } from "@/lib/api/public";
-import type { PagedResult, PublicProductListItem } from "@/lib/api/types";
 import { buildPublicMetadata, NOINDEX } from "@/lib/seo/metadata";
 import { ProductGrid } from "@/components/ui/product-grid";
 import { Pagination } from "@/components/ui/pagination";
@@ -44,15 +43,10 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
   const t = await getTranslations("products");
   const te = await getTranslations("empty");
 
-  let result: PagedResult<PublicProductListItem> | null = null;
-  try {
-    result = q
-      ? await searchProducts(q, { page, pageSize: 20 })
-      : await getProducts({ page, pageSize: 20 });
-  } catch {
-    result = null;
-  }
-  const products = result?.items ?? [];
+  const result = q
+    ? await searchProducts(q, { page, pageSize: 20 })
+    : await getProducts({ page, pageSize: 20 });
+  const products = result.items;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -65,17 +59,15 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
       ) : (
         <>
           <ProductGrid products={products} />
-          {result && (
-            <Pagination
-              currentPage={result.page}
-              totalPages={result.totalPages}
-              createHref={(p) =>
-                q
-                  ? `/products?q=${encodeURIComponent(q)}&page=${p}`
-                  : `/products?page=${p}`
-              }
-            />
-          )}
+          <Pagination
+            currentPage={result.page}
+            totalPages={result.totalPages}
+            createHref={(p) =>
+              q
+                ? `/products?q=${encodeURIComponent(q)}&page=${p}`
+                : `/products?page=${p}`
+            }
+          />
         </>
       )}
     </div>

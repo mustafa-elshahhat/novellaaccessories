@@ -5,7 +5,6 @@ import { Link } from "@/lib/i18n/navigation";
 import { formatPrice, formatDate } from "@/lib/format";
 import { getCurrentCustomer } from "@/lib/auth/server";
 import { myOrders } from "@/lib/api/orders";
-import type { CustomerOrder } from "@/lib/api/types";
 import { privatePageMetadata } from "@/lib/seo/metadata";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
@@ -29,13 +28,8 @@ export default async function OrdersPage({ params }: PageProps) {
   const t = await getTranslations("orders");
   const tp = await getTranslations("payment");
 
-  let orders: CustomerOrder[] = [];
-  try {
-    const res = await myOrders();
-    orders = Array.isArray(res) ? res : res.items;
-  } catch {
-    orders = [];
-  }
+  const res = await myOrders();
+  const orders = Array.isArray(res) ? res : res.items;
 
   if (orders.length === 0) {
     return <EmptyState title={t("empty")} />;

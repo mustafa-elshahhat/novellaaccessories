@@ -5,6 +5,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Novella.Api.Auth;
@@ -192,6 +193,19 @@ internal static class StartupExtensions
         var sp = scope.ServiceProvider;
         var db = sp.GetRequiredService<NovellaDbContext>();
 
+        string? server = null, database = null;
+        try
+        {
+            var csb = new SqlConnectionStringBuilder(connectionString);
+            server = csb.DataSource;
+            database = csb.InitialCatalog;
+        }
+        catch { /* best-effort parsing */ }
+
+        logger.LogInformation(
+            "Database configuration: Server={Server}, Database={Database}, Environment={Environment}, AutoMigrate={AutoMigrate}",
+            server ?? "(unknown)", database ?? "(unknown)", app.Environment.EnvironmentName, options.AutoMigrate);
+
         if (options.AutoMigrate)
         {
             logger.LogInformation("Database AutoMigrate enabled: applying migrations...");
@@ -202,7 +216,9 @@ internal static class StartupExtensions
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Database AutoMigrate failed at startup.");
+                logger.LogError(ex,
+                    "Database AutoMigrate failed at startup: Server={Server}, Database={Database}, Environment={Environment}, AutoMigrate={AutoMigrate}",
+                    server ?? "(unknown)", database ?? "(unknown)", app.Environment.EnvironmentName, options.AutoMigrate);
                 throw;
             }
         }

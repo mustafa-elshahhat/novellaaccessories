@@ -1,11 +1,17 @@
-import { SERVICE_NAME } from '../../config/constants.js';
+import { SERVICE_NAME, SERVICE_VERSION } from '../../config/constants.js';
 
-export function healthController(client) {
+export function healthController(config, client) {
   return (_req, res) => {
+    const status = client.status();
     res.json({
       ok: true,
       service: SERVICE_NAME,
-      whatsappState: client.status().state,
+      version: SERVICE_VERSION,
+      environment: config.nodeEnv,
+      whatsappState: status.state,
+      connected: status.state === 'connected',
+      mongodbConfigured: Boolean(config.mongodbUri),
+      keyConfigured: Boolean(config.internalApiKey),
     });
   };
 }

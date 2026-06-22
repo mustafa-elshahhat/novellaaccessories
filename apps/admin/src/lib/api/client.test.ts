@@ -15,6 +15,10 @@ describe("admin api client", () => {
     await expect(apiFetch("https://example.com/sidecar" as any)).rejects.toBeInstanceOf(ApiError);
   });
 
+  it("rejects non-admin API paths", async () => {
+    await expect(apiFetch("/api/public/home")).rejects.toMatchObject({ code: "ADMIN_API_ONLY" });
+  });
+
   it("sanitizes raw provider/database messages", () => {
     expect(sanitizeMessage("SqlException at server path", 500)).toBe("The request could not be completed.");
   });

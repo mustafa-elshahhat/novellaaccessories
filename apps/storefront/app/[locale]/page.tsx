@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/lib/i18n/navigation";
 import { pick } from "@/lib/i18n/localize";
 import { getHome, getSiteSettings } from "@/lib/api/public";
-import type { Home, SiteSettings } from "@/lib/api/types";
+import type { SiteSettings } from "@/lib/api/types";
 import { buildPublicMetadata } from "@/lib/seo/metadata";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { Hero } from "@/features/home/hero";
@@ -45,20 +45,13 @@ export default async function HomePage({ params }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations("home");
 
-  let home: Home | null = null;
-  try {
-    home = await getHome();
-  } catch {
-    home = null;
-  }
+  const home = await getHome();
 
-  const heroes = home?.heroes.filter((h) => h.isActive) ?? [];
-  const categories = home?.categories ?? [];
-  const featured = home?.featuredProducts ?? [];
+  const heroes = home.heroes.filter((h) => h.isActive);
+  const categories = home.categories;
+  const featured = home.featuredProducts;
   const discounted = featured.filter((p) => p.hasDiscount).slice(0, 8);
-  const siteName = home
-    ? pick(locale, home.siteSettings.siteNameAr, home.siteSettings.siteNameEn)
-    : "Novella";
+  const siteName = pick(locale, home.siteSettings.siteNameAr, home.siteSettings.siteNameEn);
 
   return (
     <>

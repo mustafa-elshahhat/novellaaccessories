@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Novella.Application.Abstractions;
 using Novella.Domain.Entities;
+using Novella.Domain.Enums;
 using Novella.Infrastructure.Persistence;
 using Novella.Infrastructure.Security;
 
@@ -86,6 +87,48 @@ public static class TestSeed
         db.Customers.Add(c);
         db.SaveChanges();
         return c;
+    }
+
+    public static AdminUser AddAdmin(NovellaDbContext db, FakeClock clock, string username = "admin")
+    {
+        var admin = new AdminUser
+        {
+            Id = Guid.NewGuid(),
+            Username = username + Guid.NewGuid().ToString("N")[..6],
+            DisplayName = "Test Admin",
+            PasswordHash = Passwords.Hash("AdminPassword1"),
+            IsActive = true,
+            CreatedAt = clock.UtcNow
+        };
+        db.AdminUsers.Add(admin);
+        db.SaveChanges();
+        return admin;
+    }
+
+    public static Order AddOrder(NovellaDbContext db, FakeClock clock, Guid customerId, OrderStatus status = OrderStatus.Pending)
+    {
+        var governorate = AddGovernorate(db, clock);
+        var order = new Order
+        {
+            Id = Guid.NewGuid(),
+            OrderNumber = "NV-" + Guid.NewGuid().ToString("N")[..8],
+            CustomerId = customerId,
+            Status = status,
+            CustomerName = "Test Customer",
+            CustomerPhone = "201000000001",
+            GovernorateId = governorate.Id,
+            GovernorateNameAr = governorate.NameAr,
+            GovernorateNameEn = governorate.NameEn,
+            CityDistrict = "district",
+            DetailedAddress = "address",
+            PaymentMethod = PaymentMethod.CashOnDelivery,
+            PaymentStatus = PaymentStatus.Pending,
+            DeliveredAt = status == OrderStatus.Delivered ? clock.UtcNow : null,
+            CreatedAt = clock.UtcNow
+        };
+        db.Orders.Add(order);
+        db.SaveChanges();
+        return order;
     }
 
     public static (Product product, ProductVariant variant) AddProduct(

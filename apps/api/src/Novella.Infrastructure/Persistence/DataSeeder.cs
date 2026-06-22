@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Novella.Application.Abstractions;
 using Novella.Domain.Entities;
+using Novella.Domain.Enums;
 using Novella.Infrastructure.Configuration;
 
 namespace Novella.Infrastructure.Persistence;
@@ -38,6 +39,7 @@ public sealed class DataSeeder
         var now = _clock.UtcNow;
         await SeedAdminAsync(ct);
         await SeedCategoriesAsync(now, ct);
+        await SeedDevelopmentCatalogAsync(now, ct);
         await SeedGovernoratesAsync(now, ct);
         await SeedStaticPagesAsync(now, ct);
         await SeedSiteSettingsAsync(now, ct);
@@ -96,8 +98,75 @@ public sealed class DataSeeder
             {
                 Id = Guid.NewGuid(),
                 NameAr = d.Ar, NameEn = d.En, SlugAr = d.SlugAr, SlugEn = d.SlugEn,
-                SortOrder = d.Sort, IsActive = true, CreatedAt = now
+                SortOrder = d.Sort, IsActive = true, CreatedAt = now,
+                SeoTitleAr = $"{d.Ar} ناعمة من نوفيلا",
+                SeoTitleEn = $"Novella {d.En}",
+                SeoDescriptionAr = $"تشكيلة {d.Ar} أنيقة بتفاصيل هادئة مناسبة للإطلالات اليومية والمناسبات.",
+                SeoDescriptionEn = $"Elegant {d.En.ToLowerInvariant()} with soft details for everyday looks and special moments.",
+                AeoSummaryAr = $"اختاري {d.Ar} من نوفيلا حسب المقاس والستايل، مع توصيل داخل مصر ودعم عبر واتساب.",
+                AeoSummaryEn = $"Choose Novella {d.En.ToLowerInvariant()} by size and style, with delivery in Egypt and WhatsApp support.",
+                GeoContentAr = "نوفيلا أكسسوارات متجر مصري للإكسسوارات الناعمة بتصميم راق وخدمة محلية.",
+                GeoContentEn = "Novella Accessories is an Egypt-based soft luxury accessories store with local delivery."
             });
+        }
+    }
+
+    private async Task SeedDevelopmentCatalogAsync(DateTime now, CancellationToken ct)
+    {
+        if (await _db.Products.AnyAsync(ct)) return;
+
+        var categories = await _db.Categories.ToDictionaryAsync(c => c.SlugEn, ct);
+        var samples = new[]
+        {
+            new { Category = "rings", NameAr = "خاتم لونا", NameEn = "Luna Ring", SlugAr = "khatam-luna", SlugEn = "luna-ring", Price = 420m, Cost = 210m, Discount = 15m },
+            new { Category = "necklaces", NameAr = "سلسلة ستوري", NameEn = "Story Necklace", SlugAr = "silsila-story", SlugEn = "story-necklace", Price = 680m, Cost = 340m, Discount = 0m },
+            new { Category = "earrings", NameAr = "حلق نوفا", NameEn = "Nova Earrings", SlugAr = "halaq-nova", SlugEn = "nova-earrings", Price = 360m, Cost = 180m, Discount = 10m },
+            new { Category = "bracelets", NameAr = "أسورة روز", NameEn = "Rose Bracelet", SlugAr = "aswera-rose", SlugEn = "rose-bracelet", Price = 520m, Cost = 260m, Discount = 0m }
+        };
+
+        foreach (var s in samples)
+        {
+            if (!categories.TryGetValue(s.Category, out var category)) continue;
+            var product = new Product
+            {
+                Id = Guid.NewGuid(),
+                CategoryId = category.Id,
+                NameAr = s.NameAr,
+                NameEn = s.NameEn,
+                SlugAr = s.SlugAr,
+                SlugEn = s.SlugEn,
+                DescriptionAr = "قطعة ناعمة بتفاصيل دافئة، مناسبة كهدية أو لمسة يومية راقية.",
+                DescriptionEn = "A soft accessory with warm details, made for gifting or an elegant everyday touch.",
+                BasePurchasePrice = s.Cost,
+                BaseSellingPrice = s.Price,
+                ProductDiscountPercentage = s.Discount > 0 ? s.Discount : null,
+                ProductDiscountStartAt = s.Discount > 0 ? now.AddDays(-7) : null,
+                ProductDiscountEndAt = s.Discount > 0 ? now.AddDays(30) : null,
+                IsFeatured = true,
+                IsActive = true,
+                SeoTitleAr = $"{s.NameAr} | نوفيلا أكسسوارات",
+                SeoTitleEn = $"{s.NameEn} | Novella Accessories",
+                SeoDescriptionAr = "إكسسوار أنيق بتصميم ناعم وتوصيل داخل مصر.",
+                SeoDescriptionEn = "An elegant soft-luxury accessory with delivery in Egypt.",
+                AeoSummaryAr = "هذه القطعة مناسبة للهدايا والإطلالات اليومية، ويمكن طلبها أونلاين والدفع عند الاستلام.",
+                AeoSummaryEn = "This piece is suitable for gifting and everyday styling, with online ordering and cash on delivery.",
+                GeoContentAr = "متاح للطلب من نوفيلا أكسسوارات داخل مصر حسب المحافظة المختارة.",
+                GeoContentEn = "Available from Novella Accessories in Egypt with governorate-based delivery.",
+                CreatedAt = now
+            };
+
+            product.Variants.Add(new ProductVariant
+            {
+                Id = Guid.NewGuid(),
+                ProductId = product.Id,
+                Sku = $"NV-{s.SlugEn.ToUpperInvariant()}",
+                NameAr = "قياسي",
+                NameEn = "Standard",
+                StockQuantity = 12,
+                IsActive = true,
+                CreatedAt = now
+            });
+            _db.Products.Add(product);
         }
     }
 
@@ -133,15 +202,15 @@ public sealed class DataSeeder
 
     private async Task SeedStaticPagesAsync(DateTime now, CancellationToken ct)
     {
-        var pages = new (string Key, string Ar, string En)[]
+        var pages = new (string Key, string Ar, string En, string ContentAr, string ContentEn, string AeoAr, string AeoEn, string GeoAr, string GeoEn)[]
         {
-            ("about", "من نحن", "About Us"),
-            ("contact", "اتصل بنا", "Contact Us"),
-            ("privacy", "سياسة الخصوصية", "Privacy Policy"),
-            ("terms", "الشروط والأحكام", "Terms & Conditions"),
-            ("returns", "الإرجاع والاستبدال", "Returns & Exchanges"),
-            ("shipping", "الشحن والتوصيل", "Shipping & Delivery"),
-            ("faq", "الأسئلة الشائعة", "FAQ")
+            ("about", "من نحن", "About Us", "نوفيلا أكسسوارات علامة مصرية للإكسسوارات الناعمة. نختار قطعاً دافئة وبسيطة تضيف تفصيلاً راقياً لكل إطلالة.", "Novella Accessories is an Egypt-based soft luxury accessories brand. We curate warm, delicate pieces that add a refined detail to everyday style.", "نوفيلا تبيع خواتم وسلاسل وأقراط وأساور بتصميم هادئ وتوصيل داخل مصر.", "Novella sells rings, necklaces, earrings, and bracelets with a calm premium style and delivery in Egypt.", "متجر نوفيلا يخدم العملاء في مصر من خلال الطلب أونلاين والدعم عبر واتساب.", "Novella serves customers in Egypt through online ordering and WhatsApp support."),
+            ("contact", "اتصل بنا", "Contact Us", "يمكنك التواصل معنا عبر واتساب لأي سؤال عن المنتجات أو الطلبات أو المقاسات. يسعدنا مساعدتك قبل وبعد الشراء.", "Contact us through WhatsApp for product questions, order support, or sizing guidance. We are happy to help before and after purchase.", "أفضل طريقة للتواصل مع نوفيلا هي واتساب للحصول على رد سريع حول الطلبات والمنتجات.", "The best way to contact Novella is WhatsApp for quick help with orders and products.", "دعم نوفيلا متاح للعملاء داخل مصر حسب أوقات العمل المعلنة.", "Novella support is available for customers in Egypt during published working hours."),
+            ("privacy", "سياسة الخصوصية", "Privacy Policy", "نستخدم بياناتك فقط لتشغيل الحساب، تأكيد الطلب، التوصيل، وتحسين تجربة التسوق. لا نطلب بريدك الإلكتروني للتسجيل.", "We use your data only to run your account, confirm orders, deliver purchases, and improve shopping. Customer registration does not require email.", "نوفيلا تجمع رقم الهاتف والاسم والعنوان عند الطلب لتقديم الخدمة وإتمام التوصيل.", "Novella collects phone, name, and address data during ordering to provide service and delivery.", "تتعامل نوفيلا مع بيانات العملاء داخل نظامها التجاري ولا تبيع البيانات لأطراف خارجية.", "Novella handles customer data inside its commerce system and does not sell it to external parties."),
+            ("terms", "الشروط والأحكام", "Terms & Conditions", "باستخدام متجر نوفيلا فأنت توافق على قواعد الطلب والدفع والشحن وسياسات التبديل والاسترجاع المنشورة في المتجر.", "By using Novella, you agree to the ordering, payment, shipping, return, and exchange rules published on the store.", "توضح شروط نوفيلا كيفية إتمام الطلبات، الدفع عند الاستلام، وحدود المسؤولية.", "Novella terms explain order placement, cash on delivery, and responsibility limits.", "تنطبق الشروط على الطلبات داخل مصر من خلال متجر نوفيلا الإلكتروني.", "These terms apply to orders in Egypt through the Novella online store."),
+            ("returns", "الإرجاع والاستبدال", "Returns & Exchanges", "للاستبدال أو الاسترجاع، تواصلي معنا عبر واتساب مع رقم الطلب وصورة المنتج. تُراجع كل حالة حسب سياسة المتجر وحالة القطعة.", "For returns or exchanges, contact us on WhatsApp with the order number and product photo. Each case is reviewed according to store policy and item condition.", "طلبات الإرجاع والاستبدال في نوفيلا تتم عبر واتساب ولا يوجد نظام طلبات إرجاع داخلي في نسخة MVP.", "Novella handles returns and exchanges through WhatsApp; the MVP has no internal return-request module.", "سياسة الاسترجاع مخصصة لطلبات نوفيلا داخل مصر وتخضع لحالة المنتج ووقت التواصل.", "The return policy applies to Novella orders in Egypt and depends on item condition and contact timing."),
+            ("shipping", "الشحن والتوصيل", "Shipping & Delivery", "يتم حساب الشحن حسب المحافظة المختارة أثناء الدفع. يظهر للعميل مبلغ الشحن الذي سيدفعه فقط، بينما تظل التكلفة الفعلية داخلية للتقارير.", "Shipping is calculated by the selected governorate during checkout. Customers see only the fee they pay; actual shipping cost remains internal for reports.", "نوفيلا توفر شحناً داخل المحافظات المصرية المتاحة في صفحة الدفع.", "Novella ships to active Egyptian governorates available at checkout.", "رسوم الشحن تعتمد على المحافظة داخل مصر ويتم حفظها مع الطلب وقت الإنشاء.", "Shipping fees depend on the governorate in Egypt and are snapshotted when the order is created."),
+            ("faq", "الأسئلة الشائعة", "FAQ", "س: كيف أطلب من نوفيلا؟\nج: اختاري المنتج، أضيفيه للسلة، ثم أكملي بيانات الشحن والدفع.\n\nس: هل يوجد دفع عند الاستلام؟\nج: نعم، الدفع عند الاستلام متاح في النسخة الحالية.\n\nس: هل تظهر كمية المخزون؟\nج: لا، نعرض فقط ما إذا كان المنتج متاحاً أو غير متاح.\n\nس: كيف أتواصل للاستبدال؟\nج: تواصلي معنا عبر واتساب مع رقم الطلب.", "Q: How do I order from Novella?\nA: Choose a product, add it to cart, then complete shipping and payment details.\n\nQ: Is cash on delivery available?\nA: Yes, cash on delivery is available in the current version.\n\nQ: Do you show exact stock quantities?\nA: No, we only show whether an item is available or unavailable.\n\nQ: How do I request an exchange?\nA: Contact us on WhatsApp with your order number.", "نوفيلا تدعم الطلب أونلاين، الدفع عند الاستلام، الشحن حسب المحافظة، والتواصل عبر واتساب.", "Novella supports online ordering, cash on delivery, governorate-based shipping, and WhatsApp support.", "الأسئلة الشائعة تساعد عملاء نوفيلا في مصر على فهم الطلب والشحن والتواصل.", "The FAQ helps Novella customers in Egypt understand ordering, shipping, and support.")
         };
 
         foreach (var p in pages)
@@ -152,8 +221,16 @@ public sealed class DataSeeder
                 Id = Guid.NewGuid(),
                 Key = p.Key, TitleAr = p.Ar, TitleEn = p.En,
                 SlugAr = p.Key, SlugEn = p.Key,
-                ContentAr = $"محتوى صفحة {p.Ar} (نص مؤقت).",
-                ContentEn = $"{p.En} page content (placeholder).",
+                ContentAr = p.ContentAr,
+                ContentEn = p.ContentEn,
+                SeoTitleAr = $"{p.Ar} | نوفيلا أكسسوارات",
+                SeoTitleEn = $"{p.En} | Novella Accessories",
+                SeoDescriptionAr = p.AeoAr,
+                SeoDescriptionEn = p.AeoEn,
+                AeoSummaryAr = p.AeoAr,
+                AeoSummaryEn = p.AeoEn,
+                GeoContentAr = p.GeoAr,
+                GeoContentEn = p.GeoEn,
                 IsActive = true, UpdatedAt = now
             });
         }

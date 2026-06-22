@@ -21,6 +21,7 @@ export class WhatsAppClientService {
     this.state = config.mongodbUri ? 'initializing' : 'configuration_error';
     this.qrDataUri = null;
     this.lastSentAt = null;
+    this.lastProviderMessageId = null;
     this.lastError = config.mongodbUri ? null : 'MONGODB_URI is required';
     this.reconnectTimer = null;
   }
@@ -98,6 +99,7 @@ export class WhatsAppClientService {
       state: this.state,
       qrAvailable: Boolean(this.qrDataUri),
       lastSentAt: this.lastSentAt,
+      lastProviderMessageId: this.lastProviderMessageId,
       error: this.lastError,
     };
   }
@@ -134,7 +136,7 @@ export class WhatsAppClientService {
     const timeoutMs = this.config.sendTimeoutMs ?? 30000;
     let timer;
     try {
-      await Promise.race([
+      const result = await Promise.race([
         this.sock.sendMessage(jid, { text: String(message) }),
         new Promise((_, reject) => {
           timer = setTimeout(() => {
@@ -147,6 +149,7 @@ export class WhatsAppClientService {
           }, timeoutMs);
         }),
       ]);
+      this.lastProviderMessageId = result?.key?.id ?? null;
     } catch (err) {
       // send_timeout is ambiguous (the message may still be delivered), so
       // only release the reservation for definitive non-delivery failures.
@@ -160,7 +163,8 @@ export class WhatsAppClientService {
 
     this.lastSentAt = new Date().toISOString();
     this.lastError = null;
-    logger.info({ phone: maskPhone(phone) }, 'WhatsApp message sent');
+    logger.info({ phone: maskPhone(phone), providerMessageId: this.lastProviderMessageId }, 'WhatsApp message sent');
+    return { providerMessageId: this.lastProviderMessageId };
   }
 
   async logout() {

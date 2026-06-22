@@ -9,9 +9,9 @@ export function sendMessageController(client, circuitBreaker) {
     }
     try {
       const { phone, message } = validateSendBody(req);
-      await client.sendMessage(phone, message);
+      const result = await client.sendMessage(phone, message);
       circuitBreaker.recordSuccess();
-      res.json({ success: true });
+      res.json(successPayload(result));
     } catch (err) {
       const statusCode = err?.statusCode ?? 500;
       if (statusCode !== 400 && statusCode !== 429) {
@@ -31,9 +31,9 @@ export function sendTemplateController(client, circuitBreaker) {
     try {
       const { phone, template, data } = req.body ?? {};
       const message = renderTemplate(template, data);
-      await client.sendMessage(phone, message);
+      const result = await client.sendMessage(phone, message);
       circuitBreaker.recordSuccess();
-      res.json({ success: true });
+      res.json(successPayload(result));
     } catch (err) {
       const statusCode = err?.statusCode ?? 500;
       if (statusCode !== 400 && statusCode !== 429) {
@@ -51,10 +51,16 @@ function respondWithError(res, err) {
   }
   const retryable = err?.retryable !== undefined
     ? Boolean(err.retryable)
-    : statusCode !== 400;
+    : [408, 429, 503].includes(statusCode);
   const error = statusCode === 500
     ? 'send_failed'
     : (err instanceof Error ? err.message : 'send_failed');
   res.status(statusCode).json({ success: false, error, retryable });
+}
+
+function successPayload(result) {
+  return result?.providerMessageId
+    ? { success: true, providerMessageId: result.providerMessageId }
+    : { success: true };
 }
 

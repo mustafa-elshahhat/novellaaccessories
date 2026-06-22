@@ -13,7 +13,7 @@ public sealed class NovellaDbContextFactory : IDesignTimeDbContextFactory<Novell
     public NovellaDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? "Server=localhost;Database=NovellaAccessories;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? "Data Source=localhost\\SQLEXPRESS;Initial Catalog=NovellaAccessories;Integrated Security=True;TrustServerCertificate=True";
 
         var options = new DbContextOptionsBuilder<NovellaDbContext>()
             .UseSqlServer(connectionString)

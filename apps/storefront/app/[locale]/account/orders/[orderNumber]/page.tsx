@@ -6,6 +6,7 @@ import { formatPrice, formatDate } from "@/lib/format";
 import { getCurrentCustomer } from "@/lib/auth/server";
 import { myOrder } from "@/lib/api/orders";
 import type { CustomerOrder } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { privatePageMetadata } from "@/lib/seo/metadata";
 import { Card } from "@/components/ui/card";
 import { CancelOrderButton } from "@/features/account/cancel-order-button";
@@ -36,13 +37,13 @@ export default async function OrderDetailPage({ params }: PageProps) {
     redirect(`/${locale}/login?returnUrl=/${locale}/account/orders/${orderNumber}`);
   }
 
-  let order: CustomerOrder | null = null;
+  let order: CustomerOrder;
   try {
     order = await myOrder(orderNumber);
-  } catch {
-    order = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
-  if (!order) notFound();
 
   const t = await getTranslations("orders");
   const tp = await getTranslations("payment");
@@ -137,7 +138,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
         <h2 className="mb-4 text-lg font-semibold text-deepbrown">{t("timeline")}</h2>
         <ol className="space-y-3">
           {TIMELINE_STEPS.map((step) => {
-            const at = order![step.field] as string | null;
+            const at = order[step.field] as string | null;
             const done = Boolean(at);
             return (
               <li key={step.status} className="flex items-center gap-3">

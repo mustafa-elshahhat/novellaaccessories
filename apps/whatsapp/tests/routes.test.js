@@ -11,12 +11,16 @@ function fakeConfig(overrides = {}) {
   return {
     internalApiKey: API_KEY,
     pairingAdminToken: ADMIN_TOKEN,
+    nodeEnv: 'test',
+    mongodbUri: 'mongodb://example.invalid/novella',
     enablePairingUi: false,
     sendDelayMinMs: 0,
     sendDelayMaxMs: 0,
     dailyPhoneLimit: 10,
     globalSendLimitPerMinute: 60,
     sendTimeoutMs: 30000,
+    circuitBreakerThreshold: 3,
+    circuitBreakerCooldownMs: 30000,
     ...overrides,
   };
 }
@@ -26,6 +30,7 @@ function fakeClient(state = 'qr_required', qrDataUri = 'data:image/png;base64,te
     _state: state,
     _qrDataUri: qrDataUri,
     _lastSentAt: null,
+    _lastProviderMessageId: null,
     _lastError: null,
   };
 
@@ -39,6 +44,7 @@ function fakeClient(state = 'qr_required', qrDataUri = 'data:image/png;base64,te
         state: inner._state,
         qrAvailable: Boolean(inner._qrDataUri),
         lastSentAt: inner._lastSentAt,
+        lastProviderMessageId: inner._lastProviderMessageId,
         error: inner._lastError,
       };
     },
@@ -55,6 +61,8 @@ function fakeClient(state = 'qr_required', qrDataUri = 'data:image/png;base64,te
       inner._lastSendPhone = phone;
       inner._lastSendMessage = message;
       inner._lastSentAt = new Date().toISOString();
+      inner._lastProviderMessageId = 'wamid.test';
+      return { providerMessageId: inner._lastProviderMessageId };
     },
 
     async logout() {
@@ -96,7 +104,12 @@ describe('routes', () => {
       assert.equal(res.status, 200);
       assert.equal(res.body.ok, true);
       assert.equal(res.body.service, 'novella-whatsapp');
+      assert.equal(res.body.version, '1.0.0');
+      assert.equal(res.body.environment, 'test');
       assert.equal(res.body.whatsappState, 'connected');
+      assert.equal(res.body.connected, true);
+      assert.equal(res.body.mongodbConfigured, true);
+      assert.equal(res.body.keyConfigured, true);
     });
   });
 
@@ -116,7 +129,17 @@ describe('routes', () => {
         .set('x-internal-api-key', API_KEY);
 
       assert.equal(res.status, 200);
-      assert.deepEqual(res.body, client.status());
+      assert.equal(res.body.state, client.status().state);
+      assert.equal(res.body.connected, false);
+      assert.equal(res.body.service, 'novella-whatsapp');
+      assert.equal(res.body.version, '1.0.0');
+      assert.equal(res.body.environment, 'test');
+      assert.equal(res.body.keyConfigured, true);
+      assert.equal(res.body.mongodbConfigured, true);
+      assert.equal(res.body.pairingAdminTokenConfigured, true);
+      assert.equal(res.body.pairingUiEnabled, false);
+      assert.equal(res.body.sendTimeoutMs, 30000);
+      assert.deepEqual(res.body.circuitBreaker, { threshold: 3, cooldownMs: 30000 });
     });
 
     it('returns 401 for an empty URL token when PAIRING_ADMIN_TOKEN is unset', async () => {
@@ -250,7 +273,7 @@ describe('routes', () => {
         .send({ phone: '201234567890', message: 'hello' });
 
       assert.equal(res.status, 200);
-      assert.deepEqual(res.body, { success: true });
+      assert.deepEqual(res.body, { success: true, providerMessageId: 'wamid.test' });
       assert.equal(client._lastSendPhone, '201234567890');
       assert.equal(client._lastSendMessage, 'hello');
     });

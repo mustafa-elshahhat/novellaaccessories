@@ -40,6 +40,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminCategoryDto> CreateCategoryAsync(CategoryUpsertRequest req, CancellationToken ct)
     {
+        ValidateCategory(req);
         var c = new Category
         {
             Id = Guid.NewGuid(),
@@ -64,6 +65,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminCategoryDto> UpdateCategoryAsync(Guid id, CategoryUpsertRequest req, CancellationToken ct)
     {
+        ValidateCategory(req);
         var c = await _db.Categories.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Category not found.");
         c.NameAr = req.NameAr; c.NameEn = req.NameEn;
         c.SlugAr = await UniqueCategorySlug(Slug.Ensure(req.SlugAr, req.NameAr), true, id, ct);
@@ -136,6 +138,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminProductDto> CreateProductAsync(ProductUpsertRequest req, CancellationToken ct)
     {
+        ValidateProduct(req);
         await EnsureCategoryExists(req.CategoryId, ct);
         var p = new Product
         {
@@ -162,6 +165,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminProductDto> UpdateProductAsync(Guid id, ProductUpsertRequest req, CancellationToken ct)
     {
+        ValidateProduct(req);
         var p = await _db.Products.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Product not found.");
         await EnsureCategoryExists(req.CategoryId, ct);
         p.CategoryId = req.CategoryId;
@@ -207,6 +211,7 @@ public sealed class CatalogAdminService
 
     public async Task<PublicProductImageDto> AddProductImageAsync(Guid productId, AddImageRequest req, CancellationToken ct)
     {
+        ValidateImage(req);
         await EnsureProductExists(productId, ct);
         var maxSort = await _db.ProductImages.Where(i => i.ProductId == productId).Select(i => (int?)i.SortOrder).MaxAsync(ct) ?? -1;
         if (req.IsPrimary)
@@ -258,6 +263,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminVariantDto> CreateVariantAsync(Guid productId, VariantUpsertRequest req, CancellationToken ct)
     {
+        ValidateVariant(req);
         await EnsureProductExists(productId, ct);
         if (await _db.ProductVariants.AnyAsync(v => v.Sku == req.Sku, ct))
             throw AppException.Conflict($"SKU '{req.Sku}' already exists.");
@@ -285,6 +291,7 @@ public sealed class CatalogAdminService
 
     public async Task<AdminVariantDto> UpdateVariantAsync(Guid variantId, VariantUpsertRequest req, CancellationToken ct)
     {
+        ValidateVariant(req);
         var v = await _db.ProductVariants.FirstOrDefaultAsync(x => x.Id == variantId, ct) ?? throw AppException.NotFound("Variant not found.");
         if (v.Sku != req.Sku && await _db.ProductVariants.AnyAsync(x => x.Sku == req.Sku, ct))
             throw AppException.Conflict($"SKU '{req.Sku}' already exists.");
@@ -319,6 +326,8 @@ public sealed class CatalogAdminService
 
     public async Task<AdminVariantDto> AdjustStockAsync(Guid variantId, StockAdjustRequest req, Guid? adminId, CancellationToken ct)
     {
+        if (req.NewStockQuantity < 0)
+            throw AppException.Validation("Stock quantity cannot be negative.");
         var v = await _db.ProductVariants.FirstOrDefaultAsync(x => x.Id == variantId, ct) ?? throw AppException.NotFound("Variant not found.");
         var delta = req.NewStockQuantity - v.StockQuantity;
         v.StockQuantity = req.NewStockQuantity; v.UpdatedAt = _clock.UtcNow;
@@ -360,6 +369,46 @@ public sealed class CatalogAdminService
             Reason = reason,
             CreatedAt = _clock.UtcNow
         };
+
+    private static void ValidateCategory(CategoryUpsertRequest req)
+    {
+        Require(req.NameAr, "Arabic category name is required.");
+        Require(req.NameEn, "English category name is required.");
+        if (req.SortOrder < 0) throw AppException.Validation("Sort order cannot be negative.");
+    }
+
+    private static void ValidateProduct(ProductUpsertRequest req)
+    {
+        Require(req.NameAr, "Arabic product name is required.");
+        Require(req.NameEn, "English product name is required.");
+        if (req.BasePurchasePrice < 0) throw AppException.Validation("Purchase price cannot be negative.");
+        if (req.BaseSellingPrice < 0) throw AppException.Validation("Selling price cannot be negative.");
+        if (req.ProductDiscountPercentage is < 0 or > 100)
+            throw AppException.Validation("Product discount percentage must be between 0 and 100.");
+        if (req.ProductDiscountStartAt is not null && req.ProductDiscountEndAt is not null && req.ProductDiscountStartAt > req.ProductDiscountEndAt)
+            throw AppException.Validation("Product discount start date must be before end date.");
+    }
+
+    private static void ValidateVariant(VariantUpsertRequest req)
+    {
+        Require(req.Sku, "SKU is required.");
+        if (req.StockQuantity < 0) throw AppException.Validation("Stock quantity cannot be negative.");
+        if (req.PurchasePriceOverride is < 0) throw AppException.Validation("Purchase price override cannot be negative.");
+        if (req.SellingPriceOverride is < 0) throw AppException.Validation("Selling price override cannot be negative.");
+    }
+
+    private static void ValidateImage(AddImageRequest req)
+    {
+        Require(req.Url, "Image URL is required.");
+        Require(req.PublicId, "Image public ID is required.");
+        if (!Uri.TryCreate(req.Url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+            throw AppException.Validation("Image URL must be an absolute HTTPS URL.");
+    }
+
+    private static void Require(string? value, string message)
+    {
+        if (string.IsNullOrWhiteSpace(value)) throw AppException.Validation(message);
+    }
 
     private static AdminProductDto MapAdminProduct(Product p) => new(
         p.Id, p.CategoryId, p.NameAr, p.NameEn, p.SlugAr, p.SlugEn, p.DescriptionAr, p.DescriptionEn,

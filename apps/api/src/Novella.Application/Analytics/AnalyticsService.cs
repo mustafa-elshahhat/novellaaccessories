@@ -93,6 +93,9 @@ public sealed class AnalyticsService
             if (e.PageUrl is { Length: > 1024 })
                 throw AppException.Validation("pageUrl is too long.");
 
+            var session = await ValidateSessionOwnershipAsync(e.SessionId, e.VisitorId, customerId, ct);
+            await ValidateEventReferencesAsync(e, customerId, ct);
+
             _db.AnalyticsEvents.Add(new AnalyticsEvent
             {
                 Id = Guid.NewGuid(),
@@ -106,16 +109,10 @@ public sealed class AnalyticsService
                 MetadataJson = SanitizeMetadata(e.MetadataJson),
                 CreatedAt = now
             });
-        }
 
-        var sessionId = req.Events[0].SessionId;
-        var session = await _db.AnalyticsSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
-        if (session is not null)
-        {
             session.LastActivityAt = now;
-            // Link an order placed in this session for conversion tracking.
-            var placed = req.Events.FirstOrDefault(e => e.EventType == AnalyticsEventType.OrderPlaced && e.OrderId is not null);
-            if (placed is not null) session.ConvertedOrderId = placed.OrderId;
+            if (e.EventType == AnalyticsEventType.OrderPlaced && e.OrderId is not null)
+                session.ConvertedOrderId = e.OrderId;
         }
         await _db.SaveChangesAsync(ct);
     }
@@ -123,12 +120,53 @@ public sealed class AnalyticsService
     public async Task IdentifyAsync(IdentifyRequest req, Guid customerId, CancellationToken ct)
     {
         var session = await _db.AnalyticsSessions.FirstOrDefaultAsync(s => s.Id == req.SessionId, ct);
-        if (session is not null) session.CustomerId = customerId;
+        if (session is null || session.VisitorId != req.VisitorId)
+            throw AppException.NotFound("Analytics session not found.");
+        if (session.CustomerId is not null && session.CustomerId != customerId)
+            throw AppException.Forbidden("Analytics session belongs to another customer.");
+        session.CustomerId = customerId;
 
         var visitor = await _db.AnalyticsVisitors.FirstOrDefaultAsync(v => v.Id == req.VisitorId, ct);
-        if (visitor is not null) visitor.CustomerId = customerId;
+        if (visitor is null)
+            throw AppException.NotFound("Analytics visitor not found.");
+        if (visitor.CustomerId is not null && visitor.CustomerId != customerId)
+            throw AppException.Forbidden("Analytics visitor belongs to another customer.");
+        visitor.CustomerId = customerId;
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task<AnalyticsSession> ValidateSessionOwnershipAsync(Guid sessionId, Guid visitorId, Guid? customerId, CancellationToken ct)
+    {
+        var session = await _db.AnalyticsSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct)
+            ?? throw AppException.NotFound("Analytics session not found.");
+        if (session.VisitorId != visitorId)
+            throw AppException.Forbidden("Analytics session does not match visitor.");
+        if (customerId is not null)
+        {
+            if (session.CustomerId is not null && session.CustomerId != customerId)
+                throw AppException.Forbidden("Analytics session belongs to another customer.");
+            session.CustomerId = customerId;
+        }
+        else if (session.CustomerId is not null)
+        {
+            throw AppException.Forbidden("Authenticated analytics session requires customer credentials.");
+        }
+        return session;
+    }
+
+    private async Task ValidateEventReferencesAsync(TrackEventRequest e, Guid? customerId, CancellationToken ct)
+    {
+        if (e.ProductId is { } productId && !await _db.Products.AnyAsync(p => p.Id == productId && p.IsActive, ct))
+            throw AppException.NotFound("Product not found.");
+
+        if (e.OrderId is { } orderId)
+        {
+            var ownsOrder = customerId is not null
+                && await _db.Orders.AnyAsync(o => o.Id == orderId && o.CustomerId == customerId, ct);
+            if (!ownsOrder)
+                throw AppException.Forbidden("Analytics order event is not owned by this customer.");
+        }
     }
 
     private static string? SanitizeMetadata(string? metadataJson)

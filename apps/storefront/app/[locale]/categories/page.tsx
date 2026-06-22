@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getCategories } from "@/lib/api/public";
-import type { PublicCategory } from "@/lib/api/types";
 import { buildPublicMetadata, absoluteUrl } from "@/lib/seo/metadata";
 import { JsonLd, collectionJsonLd } from "@/lib/seo/jsonld";
 import { CategoryCard } from "@/components/ui/category-card";
@@ -26,12 +25,7 @@ export default async function CategoriesPage({ params }: PageProps) {
   const t = await getTranslations("categories");
   const te = await getTranslations("empty");
 
-  let categories: PublicCategory[] = [];
-  try {
-    categories = await getCategories();
-  } catch {
-    categories = [];
-  }
+  const categories = await getCategories();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">

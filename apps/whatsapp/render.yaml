@@ -25,3 +25,11 @@ services:
         value: "10"
       - key: GLOBAL_SEND_LIMIT_PER_MINUTE
         value: "60"
+      - key: SEND_TIMEOUT_MS
+        value: "30000"
+      - key: CIRCUIT_BREAKER_THRESHOLD
+        value: "3"
+      - key: CIRCUIT_BREAKER_COOLDOWN_MS
+        value: "30000"
+      - key: LOG_LEVEL
+        value: info

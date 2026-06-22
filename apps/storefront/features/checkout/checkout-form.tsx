@@ -30,10 +30,12 @@ export function CheckoutForm({
   customer,
   governorates,
   paymentMethods,
+  initialCoupon = "",
 }: {
   customer: CustomerProfile;
   governorates: PublicGovernorate[];
   paymentMethods: PaymentMethodInfo[];
+  initialCoupon?: string;
 }) {
   const t = useTranslations("checkout");
   const tp = useTranslations("payment");
@@ -51,7 +53,7 @@ export function CheckoutForm({
   const [cityDistrict, setCityDistrict] = useState("");
   const [detailedAddress, setDetailedAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [coupon, setCoupon] = useState("");
+  const [coupon, setCoupon] = useState(initialCoupon);
   const [method, setMethod] = useState<PaymentMethod | "">(
     activeMethods[0]?.method ?? "",
   );
@@ -103,6 +105,10 @@ export function CheckoutForm({
 
   async function placeOrder() {
     if (placing || !preview) return;
+    if (preview.warnings.length > 0) {
+      setErrors({ form: t("warnings") });
+      return;
+    }
     setPlacing(true);
     try {
       const order = await bff<CreateOrderResponse>("/api/orders", {
@@ -292,7 +298,8 @@ export function CheckoutForm({
               <dd>{formatPrice(preview.grandTotal, locale)}</dd>
             </div>
           </dl>
-          <Button onClick={placeOrder} fullWidth disabled={placing}>
+          {preview.warnings.length > 0 && <FormAlert>{t("warnings")}</FormAlert>}
+          <Button onClick={placeOrder} fullWidth disabled={placing || preview.warnings.length > 0}>
             {placing ? t("placing") : t("placeOrder")}
           </Button>
         </section>

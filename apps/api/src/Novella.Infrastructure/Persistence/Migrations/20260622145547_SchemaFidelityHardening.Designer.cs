@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Novella.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Novella.Infrastructure.Persistence;
 namespace Novella.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NovellaDbContext))]
-    partial class NovellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622145547_SchemaFidelityHardening")]
+    partial class SchemaFidelityHardening
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1958,7 +1961,7 @@ namespace Novella.Infrastructure.Persistence.Migrations
                     b.HasOne("Novella.Domain.Entities.Customer", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Novella.Domain.Entities.Cart", null)

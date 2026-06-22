@@ -5,20 +5,23 @@ import { Link } from "@/lib/i18n/navigation";
 import { getCurrentCustomer } from "@/lib/auth/server";
 import { getGovernorates } from "@/lib/api/public";
 import { getPaymentMethods } from "@/lib/api/payments";
-import type { PublicGovernorate, PaymentMethodInfo } from "@/lib/api/types";
 import { privatePageMetadata } from "@/lib/seo/metadata";
 import { CheckoutForm } from "@/features/checkout/checkout-form";
 import { EmptyState } from "@/components/ui/states";
 
-type PageProps = { params: Promise<{ locale: string }> };
+type PageProps = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   return privatePageMetadata(locale, "checkout", "title");
 }
 
-export default async function CheckoutPage({ params }: PageProps) {
+export default async function CheckoutPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
 
   const customer = await getCurrentCustomer();
@@ -44,24 +47,18 @@ export default async function CheckoutPage({ params }: PageProps) {
     );
   }
 
-  let governorates: PublicGovernorate[] = [];
-  let paymentMethods: PaymentMethodInfo[] = [];
-  try {
-    governorates = await getGovernorates();
-  } catch {
-    governorates = [];
-  }
-  try {
-    paymentMethods = await getPaymentMethods();
-  } catch {
-    paymentMethods = [];
-  }
+  const [governorates, paymentMethods] = await Promise.all([
+    getGovernorates(),
+    getPaymentMethods(),
+  ]);
+  const coupon = Array.isArray(sp.coupon) ? sp.coupon[0] : sp.coupon;
 
   return (
     <CheckoutForm
       customer={customer}
       governorates={governorates}
       paymentMethods={paymentMethods}
+      initialCoupon={coupon ?? ""}
     />
   );
 }

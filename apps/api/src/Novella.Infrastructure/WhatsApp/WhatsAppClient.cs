@@ -85,6 +85,9 @@ public sealed class WhatsAppClient : IWhatsAppClient
                 using var doc = JsonDocument.Parse(body);
                 if (doc.RootElement.TryGetProperty("connected", out var c) && c.ValueKind == JsonValueKind.True)
                     connected = true;
+                else if (doc.RootElement.TryGetProperty("state", out var state) &&
+                         string.Equals(state.GetString(), "connected", StringComparison.OrdinalIgnoreCase))
+                    connected = true;
                 else if (doc.RootElement.TryGetProperty("status", out var s) &&
                          string.Equals(s.GetString(), "connected", StringComparison.OrdinalIgnoreCase))
                     connected = true;

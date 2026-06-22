@@ -200,6 +200,11 @@ export interface CartItem {
   productVariantId: string;
   productNameAr: string;
   productNameEn: string;
+  productSlugAr: string;
+  productSlugEn: string;
+  primaryImageUrl: string | null;
+  primaryImageAltAr: string | null;
+  primaryImageAltEn: string | null;
   variantNameAr: string | null;
   variantNameEn: string | null;
   sku: string;

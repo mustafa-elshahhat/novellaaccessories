@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using Novella.Application.Abstractions;
 using Novella.Application.Common;
 using Novella.Application.WhatsApp;
@@ -11,6 +12,11 @@ namespace Novella.Application.Auth;
 /// <summary>Customer authentication and OTP-driven flows (register, login, reset, change phone).</summary>
 public sealed class AuthService
 {
+    private static readonly ConcurrentDictionary<string, Queue<DateTime>> PhoneWindows = new();
+    private static readonly object RateLimitLock = new();
+    private const int PhonePermitLimit = 30;
+    private static readonly TimeSpan PhoneWindow = TimeSpan.FromMinutes(10);
+
     private readonly IAppDbContext _db;
     private readonly IPasswordHasher _passwords;
     private readonly IJwtTokenService _jwt;
@@ -32,6 +38,7 @@ public sealed class AuthService
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest req, CancellationToken ct)
     {
         var normalized = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+        EnforcePhoneRateLimit($"register:{normalized}", _clock.UtcNow);
         if (normalized.Length < 8)
             throw AppException.Validation("Invalid phone number.");
         if (string.IsNullOrWhiteSpace(req.FullName))
@@ -77,6 +84,7 @@ public sealed class AuthService
     public async Task<AuthTokenResponse> VerifyPhoneAsync(VerifyPhoneRequest req, CancellationToken ct)
     {
         var normalized = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+        EnforcePhoneRateLimit($"verify:{normalized}", _clock.UtcNow);
         await _otp.VerifyAsync(normalized, OtpPurpose.Register, req.Code, ct);
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.PhoneNumberNormalized == normalized, ct)
@@ -94,6 +102,7 @@ public sealed class AuthService
     public async Task<AuthTokenResponse> LoginAsync(LoginRequest req, CancellationToken ct)
     {
         var normalized = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+        EnforcePhoneRateLimit($"login:{normalized}", _clock.UtcNow);
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.PhoneNumberNormalized == normalized, ct);
 
         if (customer is null || !customer.IsActive || !_passwords.Verify(req.Password, customer.PasswordHash))
@@ -111,9 +120,10 @@ public sealed class AuthService
     public async Task RequestPasswordResetAsync(ForgotPasswordRequest req, CancellationToken ct)
     {
         var normalized = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+        EnforcePhoneRateLimit($"reset-request:{normalized}", _clock.UtcNow);
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.PhoneNumberNormalized == normalized, ct);
         // Do not reveal whether the account exists.
-        if (customer is null) return;
+        if (customer is null || !customer.IsActive) return;
 
         await IssueAndSendOtpAsync(customer.PhoneNumber, normalized, OtpPurpose.ResetPassword, customer.Id, customer.FullName, ct);
     }
@@ -124,10 +134,13 @@ public sealed class AuthService
             throw AppException.Validation("Password must be at least 6 characters.");
 
         var normalized = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+        EnforcePhoneRateLimit($"reset:{normalized}", _clock.UtcNow);
         await _otp.VerifyAsync(normalized, OtpPurpose.ResetPassword, req.Code, ct);
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.PhoneNumberNormalized == normalized, ct)
             ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
 
         customer.PasswordHash = _passwords.Hash(req.NewPassword);
         customer.UpdatedAt = _clock.UtcNow;
@@ -137,11 +150,16 @@ public sealed class AuthService
     public async Task RequestPhoneChangeAsync(Guid customerId, ChangePhoneRequest req, CancellationToken ct)
     {
         var newNormalized = PhoneNumberNormalizer.Normalize(req.NewPhoneNumber);
+        EnforcePhoneRateLimit($"change-request:{newNormalized}", _clock.UtcNow);
         if (newNormalized.Length < 8)
             throw AppException.Validation("Invalid phone number.");
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
+        if (!customer.IsPhoneVerified)
+            throw new AppException(ErrorCodes.PhoneNotVerified, "Phone number is not verified.", 403);
 
         var taken = await _db.Customers.AnyAsync(c => c.PhoneNumberNormalized == newNormalized && c.Id != customerId, ct);
         if (taken)
@@ -166,10 +184,13 @@ public sealed class AuthService
     public async Task VerifyPhoneChangeAsync(Guid customerId, ChangePhoneVerifyRequest req, CancellationToken ct)
     {
         var newNormalized = PhoneNumberNormalizer.Normalize(req.NewPhoneNumber);
+        EnforcePhoneRateLimit($"change-verify:{newNormalized}", _clock.UtcNow);
         await _otp.VerifyAsync(newNormalized, OtpPurpose.ChangePhone, req.Code, ct);
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
 
         var request = await _db.CustomerPhoneChangeRequests
             .Where(r => r.CustomerId == customerId && r.NewPhoneNumberNormalized == newNormalized && r.Status == PhoneChangeStatus.Pending)
@@ -197,6 +218,8 @@ public sealed class AuthService
     {
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
         return Map(customer);
     }
 
@@ -219,6 +242,19 @@ public sealed class AuthService
         });
         await _whatsApp.SendAsync(WhatsAppMessageType.Otp, "otp", phone, customerId, body, ct);
         // The plain code is now out of scope; it was never logged or returned.
+    }
+
+    private static void EnforcePhoneRateLimit(string key, DateTime now)
+    {
+        lock (RateLimitLock)
+        {
+            var window = PhoneWindows.GetOrAdd(key, _ => new Queue<DateTime>());
+            while (window.Count > 0 && now - window.Peek() > PhoneWindow)
+                window.Dequeue();
+            if (window.Count >= PhonePermitLimit)
+                throw new AppException(ErrorCodes.RateLimited, "Too many attempts for this phone number. Please try again later.", 429);
+            window.Enqueue(now);
+        }
     }
 }
 
@@ -254,6 +290,8 @@ public sealed class AdminAuthService
     {
         var admin = await _db.AdminUsers.FirstOrDefaultAsync(a => a.Id == adminId, ct)
             ?? throw AppException.NotFound("Admin not found.");
+        if (!admin.IsActive)
+            throw AppException.Forbidden("Admin account is inactive.");
         return new AdminProfileDto(admin.Id, admin.Username, admin.DisplayName);
     }
 }

@@ -35,7 +35,7 @@ function Guard() {
   const auth = useAuth();
   const location = useLocation();
   if (auth.status === "loading") return <Skeleton lines={8} />;
-  if (auth.status === "forbidden") return <ErrorState error={new Error("Access denied. Admin role is required.")} />;
+  if (auth.status === "forbidden") return <ErrorState error={new Error("Access denied. Admin access is required.")} />;
   if (auth.status !== "authenticated") return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return <AdminShell />;
 }

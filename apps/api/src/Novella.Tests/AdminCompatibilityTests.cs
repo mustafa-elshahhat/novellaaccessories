@@ -32,9 +32,10 @@ public class AdminCompatibilityTests
         using var db = new TestDatabase();
         var clock = new FakeClock();
         var (product, variant) = TestSeed.AddProduct(db.Db, clock, active: true);
+        var admin = TestSeed.AddAdmin(db.Db, clock);
         var service = new CatalogAdminService(db.Db, clock);
 
-        await service.AdjustStockAsync(variant.Id, new StockAdjustRequest(7, "cycle count"), Guid.NewGuid(), CancellationToken.None);
+        await service.AdjustStockAsync(variant.Id, new StockAdjustRequest(7, "cycle count"), admin.Id, CancellationToken.None);
         var page = await service.GetProductsAsync(new Application.Common.PageQuery { Page = 1, PageSize = 20 }, null, product.CategoryId, true, null, CancellationToken.None);
         var movements = await service.GetInventoryMovementsAsync(variant.Id, CancellationToken.None);
 

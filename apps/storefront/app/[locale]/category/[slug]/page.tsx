@@ -4,7 +4,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pick, pickSlug } from "@/lib/i18n/localize";
 import type { Locale } from "@/lib/i18n/routing";
 import { getCategory, getCategoryProducts } from "@/lib/api/public";
-import type { PublicCategory, PagedResult, PublicProductListItem } from "@/lib/api/types";
+import type { PublicCategory } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { buildPublicMetadata } from "@/lib/seo/metadata";
 import { JsonLd, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo/jsonld";
 import { absoluteUrl } from "@/lib/seo/metadata";
@@ -29,8 +30,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let category: PublicCategory | null = null;
   try {
     category = await getCategory(slug);
-  } catch {
-    category = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return {};
+    throw error;
   }
   if (!category) return {};
   const title =
@@ -56,10 +58,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   let category: PublicCategory | null = null;
   try {
     category = await getCategory(slug);
-  } catch {
-    category = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
-  if (!category) notFound();
 
   const tNav = await getTranslations("nav");
   const tCat = await getTranslations("categories");
@@ -69,13 +71,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const localizedSlug = pickSlug(locale as Locale, category.slugAr, category.slugEn);
   const name = pick(locale as Locale, category.nameAr, category.nameEn);
 
-  let result: PagedResult<PublicProductListItem> | null = null;
-  try {
-    result = await getCategoryProducts(localizedSlug, { page, pageSize: 20 });
-  } catch {
-    result = null;
-  }
-  const products = result?.items ?? [];
+  const result = await getCategoryProducts(localizedSlug, { page, pageSize: 20 });
+  const products = result.items;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
@@ -108,13 +105,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       ) : (
         <>
           <ProductGrid products={products} />
-          {result && (
-            <Pagination
-              currentPage={result.page}
-              totalPages={result.totalPages}
-              createHref={(p) => `/category/${localizedSlug}?page=${p}`}
-            />
-          )}
+          <Pagination
+            currentPage={result.page}
+            totalPages={result.totalPages}
+            createHref={(p) => `/category/${localizedSlug}?page=${p}`}
+          />
         </>
       )}
 

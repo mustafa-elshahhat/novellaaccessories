@@ -33,6 +33,7 @@ public sealed class CheckoutService
 
     public async Task<CheckoutPreviewDto> PreviewAsync(Guid customerId, CheckoutPreviewRequest req, CancellationToken ct)
     {
+        await EnsureCustomerCanOrderAsync(customerId, ct);
         var computed = await ComputeAsync(customerId, req.GovernorateId, req.CouponCode, ct);
         return computed.ToPreview();
     }
@@ -54,6 +55,10 @@ public sealed class CheckoutService
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId, ct)
             ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
+        if (!customer.IsPhoneVerified)
+            throw new AppException(ErrorCodes.PhoneNotVerified, "Phone number is not verified.", 403);
 
         // COD active; other methods rejected here (prepared but inactive).
         if (req.PaymentMethod != PaymentMethod.CashOnDelivery)
@@ -257,6 +262,16 @@ public sealed class CheckoutService
             Coupon = coupon,
             CouponCode = coupon?.Code
         };
+    }
+
+    private async Task EnsureCustomerCanOrderAsync(Guid customerId, CancellationToken ct)
+    {
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
+            ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
+        if (!customer.IsPhoneVerified)
+            throw new AppException(ErrorCodes.PhoneNotVerified, "Phone number is not verified.", 403);
     }
 
     private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)

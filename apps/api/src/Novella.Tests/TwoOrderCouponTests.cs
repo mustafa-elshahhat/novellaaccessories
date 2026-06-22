@@ -21,21 +21,7 @@ public class TwoOrderCouponTests
 
     private static Order AddOrder(TestDatabase db, FakeClock clock, Guid customerId, OrderStatus status)
     {
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            OrderNumber = "NV-" + Guid.NewGuid().ToString("N")[..8],
-            CustomerId = customerId,
-            Status = status,
-            CustomerName = "C", CustomerPhone = "201000000001",
-            GovernorateNameAr = "ج", GovernorateNameEn = "G", CityDistrict = "x", DetailedAddress = "y",
-            PaymentMethod = PaymentMethod.CashOnDelivery, PaymentStatus = PaymentStatus.Pending,
-            DeliveredAt = status == OrderStatus.Delivered ? clock.UtcNow : null,
-            CreatedAt = clock.UtcNow
-        };
-        db.Db.Orders.Add(order);
-        db.Db.SaveChanges();
-        return order;
+        return TestSeed.AddOrder(db.Db, clock, customerId, status);
     }
 
     private static TwoOrderCouponService NewService(TestDatabase db, FakeClock clock)

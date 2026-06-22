@@ -8,4 +8,5 @@ export const DEFAULT_GLOBAL_SEND_LIMIT_PER_MINUTE = 60;
 export const CIRCUIT_BREAKER_THRESHOLD = 3;
 export const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
 export const SERVICE_NAME = 'novella-whatsapp';
+export const SERVICE_VERSION = '1.0.0';
 

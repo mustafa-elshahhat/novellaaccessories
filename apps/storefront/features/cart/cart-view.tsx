@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/lib/i18n/navigation";
-import { pick } from "@/lib/i18n/localize";
+import { pick, pickSlug } from "@/lib/i18n/localize";
+import type { Locale } from "@/lib/i18n/routing";
 import { formatPrice } from "@/lib/format";
 import type { Cart, CartItem } from "@/lib/api/types";
 import { bff } from "@/lib/api/bff-client";
@@ -33,6 +35,7 @@ export function CartView() {
 
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
   const [checkingOut, setCheckingOut] = useState(false);
   const repriced = useRef(false);
 
@@ -134,7 +137,8 @@ export function CartView() {
         setCheckingOut(false);
         return;
       }
-      router.push(`/${locale}/checkout` as Route);
+      const qs = couponCode.trim() ? `?coupon=${encodeURIComponent(couponCode.trim())}` : "";
+      router.push(`/${locale}/checkout${qs}` as Route);
     } catch (err) {
       toast.show(getError(err), "error");
       setCheckingOut(false);
@@ -160,6 +164,8 @@ export function CartView() {
         <ul className="space-y-4">
           {cart.items.map((item) => {
             const name = pick(locale, item.productNameAr, item.productNameEn);
+            const slug = pickSlug(locale as Locale, item.productSlugAr, item.productSlugEn);
+            const imageAlt = pick(locale, item.primaryImageAltAr, item.primaryImageAltEn) || name;
             const variant = pick(locale, item.variantNameAr, item.variantNameEn);
             const busy = pendingId === item.itemId;
             return (
@@ -167,12 +173,26 @@ export function CartView() {
                 key={item.itemId}
                 className="flex gap-4 rounded-card border border-bordergold/40 bg-cream p-3"
               >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-ivory" />
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-ivory">
+                  {item.primaryImageUrl ? (
+                    <Image
+                      src={item.primaryImageUrl}
+                      alt={imageAlt}
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-taupe">
+                      novella
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-1 flex-col gap-2">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <Link
-                        href={`/product/${item.productId}`}
+                        href={`/product/${slug}`}
                         className="font-medium text-mocha hover:text-bronze"
                       >
                         {name}
@@ -237,6 +257,16 @@ export function CartView() {
               <dd>{formatPrice(cart.subtotalAfterProductDiscount, locale)}</dd>
             </div>
           </dl>
+          <label className="mt-4 block text-sm font-medium text-mocha" htmlFor="cart-coupon">
+            {t("couponLabel")}
+          </label>
+          <input
+            id="cart-coupon"
+            value={couponCode}
+            onChange={(event) => setCouponCode(event.target.value)}
+            placeholder={t("couponPlaceholder")}
+            className="mt-2 w-full rounded-xl border border-bordergold bg-cream px-4 py-2.5 text-mocha placeholder:text-taupe/70 focus:border-bronze focus:outline-none focus:ring-2 focus:ring-bronze/30"
+          />
           {hasUnavailable && (
             <p role="alert" className="mt-3 text-sm text-red-600">
               {t("hasUnavailable")}

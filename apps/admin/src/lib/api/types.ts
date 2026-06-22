@@ -3,8 +3,8 @@ export type Id = string;
 export type PagedResult<T> = { items: T[]; page: number; pageSize: number; totalCount: number; totalPages: number };
 export type Success = { success: boolean };
 
-export type AdminProfile = { id: Id; username: string; displayName: string; role: "Admin" };
-export type AdminLoginResponse = { token: string; admin: Omit<AdminProfile, "role"> };
+export type AdminProfile = { id: Id; username: string; displayName: string };
+export type AdminLoginResponse = { token: string; admin: AdminProfile };
 
 export type StatusRequest = { isActive: boolean };
 export type ReorderRequest = { items: { id: Id; sortOrder: number }[] };

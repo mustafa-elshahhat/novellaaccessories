@@ -98,6 +98,7 @@ public sealed class CouponService
 
     public async Task<AdminCouponDto> CreateAsync(CouponUpsertRequest req, CancellationToken ct)
     {
+        ValidateUpsert(req);
         var code = req.Code.Trim();
         if (await _db.Coupons.AnyAsync(c => c.Code == code, ct))
             throw AppException.Conflict("Coupon code already exists.");
@@ -126,6 +127,7 @@ public sealed class CouponService
 
     public async Task<AdminCouponDto> UpdateAsync(Guid id, CouponUpsertRequest req, CancellationToken ct)
     {
+        ValidateUpsert(req);
         var c = await _db.Coupons.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Coupon not found.");
         var code = req.Code.Trim();
         if (c.Code != code && await _db.Coupons.AnyAsync(x => x.Code == code, ct))
@@ -180,6 +182,12 @@ public sealed class CouponService
 
     public async Task<TwoOrderSettingsDto> UpdateTwoOrderSettingsAsync(TwoOrderSettingsDto req, CancellationToken ct)
     {
+        if (req.DiscountPercentage is < 0 or > 100)
+            throw AppException.Validation("Two-order coupon discount percentage must be between 0 and 100.");
+        if (req.ValidityDays < 1)
+            throw AppException.Validation("Two-order coupon validity must be at least one day.");
+        if (req.MinimumOrderSubtotal is < 0)
+            throw AppException.Validation("Minimum subtotal cannot be negative.");
         var s = await _db.TwoOrderCouponSettings.FirstOrDefaultAsync(ct);
         if (s is null)
         {
@@ -199,4 +207,24 @@ public sealed class CouponService
     private static AdminCouponDto Map(Coupon c, int timesUsed)
         => new(c.Id, c.Code, c.Type, c.Value, c.StartAt, c.EndAt, c.TotalUsageLimit, c.PerCustomerUsageLimit,
             c.MinimumOrderSubtotal, c.IsActive, c.IsCustomerSpecific, c.CustomerId, c.Source, timesUsed);
+
+    private static void ValidateUpsert(CouponUpsertRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Code))
+            throw AppException.Validation("Coupon code is required.");
+        if (req.Value <= 0)
+            throw AppException.Validation("Coupon value must be greater than zero.");
+        if (req.Type == CouponType.Percentage && req.Value > 100)
+            throw AppException.Validation("Percentage coupon value must be between 0 and 100.");
+        if (req.TotalUsageLimit is < 1)
+            throw AppException.Validation("Total usage limit must be at least one.");
+        if (req.PerCustomerUsageLimit is < 1)
+            throw AppException.Validation("Per-customer usage limit must be at least one.");
+        if (req.MinimumOrderSubtotal is < 0)
+            throw AppException.Validation("Minimum subtotal cannot be negative.");
+        if (req.StartAt is not null && req.EndAt is not null && req.StartAt > req.EndAt)
+            throw AppException.Validation("Coupon start date must be before end date.");
+        if (req.IsCustomerSpecific && req.CustomerId is null)
+            throw AppException.Validation("Customer-specific coupons require a customer.");
+    }
 }

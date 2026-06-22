@@ -89,10 +89,11 @@ public class CouponServiceTests
     {
         using var db = new TestDatabase();
         var clock = new FakeClock();
-        var customer = Guid.NewGuid();
+        var customer = TestSeed.AddCustomer(db.Db, clock).Id;
+        var order = TestSeed.AddOrder(db.Db, clock, customer);
         var coupon = NewCoupon(clock, c => c.PerCustomerUsageLimit = 1);
         db.Db.Coupons.Add(coupon);
-        db.Db.CouponUsages.Add(new CouponUsage { Id = Guid.NewGuid(), CouponId = coupon.Id, CustomerId = customer, OrderId = Guid.NewGuid(), DiscountAmount = 10m, UsedAt = clock.UtcNow });
+        db.Db.CouponUsages.Add(new CouponUsage { Id = Guid.NewGuid(), CouponId = coupon.Id, CustomerId = customer, OrderId = order.Id, DiscountAmount = 10m, UsedAt = clock.UtcNow });
         db.Db.SaveChanges();
 
         var svc = new CouponService(db.Db, clock);

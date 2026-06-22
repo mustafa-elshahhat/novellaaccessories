@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getProducts } from "@/lib/api/public";
-import type { PagedResult, PublicProductListItem } from "@/lib/api/types";
 import { buildPublicMetadata, absoluteUrl } from "@/lib/seo/metadata";
 import { JsonLd, collectionJsonLd } from "@/lib/seo/jsonld";
 import { ProductGrid } from "@/components/ui/product-grid";
@@ -38,14 +37,8 @@ export default async function OffersPage({ params, searchParams }: PageProps) {
   const t = await getTranslations("offers");
   const te = await getTranslations("empty");
 
-  // Server-side active-discount filter (backend ProductListQuery.hasDiscount — see backend change #2).
-  let result: PagedResult<PublicProductListItem> | null = null;
-  try {
-    result = await getProducts({ hasDiscount: true, page, pageSize: 20 });
-  } catch {
-    result = null;
-  }
-  const products = result?.items ?? [];
+  const result = await getProducts({ hasDiscount: true, page, pageSize: 20 });
+  const products = result.items;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -63,13 +56,11 @@ export default async function OffersPage({ params, searchParams }: PageProps) {
       ) : (
         <>
           <ProductGrid products={products} />
-          {result && (
-            <Pagination
-              currentPage={result.page}
-              totalPages={result.totalPages}
-              createHref={(p) => `/offers?page=${p}`}
-            />
-          )}
+          <Pagination
+            currentPage={result.page}
+            totalPages={result.totalPages}
+            createHref={(p) => `/offers?page=${p}`}
+          />
         </>
       )}
     </div>

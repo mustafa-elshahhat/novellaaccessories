@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novella.Application.Expenses;
+using Novella.Application.Common;
 using Novella.Application.Reminders;
 using Novella.Application.Uploads;
 using Novella.Application.WhatsApp;
@@ -53,6 +54,12 @@ public sealed class AdminUploadsController : ControllerBase
     [RequestSizeLimit(15_000_000)]
     public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] string? entityType, [FromForm] string? entityId, CancellationToken ct)
     {
+        if (file is null || file.Length <= 0)
+            throw AppException.Validation("A valid image file is required.");
+        if (file.Length > 15_000_000)
+            throw AppException.Validation("Uploaded image is too large.");
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            throw AppException.Validation("Uploaded file must be an image.");
         await using var stream = file.OpenReadStream();
         var result = await _svc.UploadAsync(stream, file.FileName, entityType, entityId, ct);
         return Ok(result);

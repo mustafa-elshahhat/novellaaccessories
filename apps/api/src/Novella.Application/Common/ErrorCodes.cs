@@ -10,6 +10,7 @@ public static class ErrorCodes
     public const string Conflict = "CONFLICT";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
     public const string Internal = "INTERNAL_ERROR";
+    public const string RateLimited = "RATE_LIMITED";
 
     // Auth / OTP
     public const string AuthInvalidCredentials = "AUTH_INVALID_CREDENTIALS";

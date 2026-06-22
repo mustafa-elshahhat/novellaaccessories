@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/lib/i18n/navigation";
 import { formatPrice } from "@/lib/format";
 import { getCurrentCustomer } from "@/lib/auth/server";
 import { myOrder } from "@/lib/api/orders";
 import type { CustomerOrder } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { privatePageMetadata } from "@/lib/seo/metadata";
 import { CheckIcon } from "@/components/icons";
 import { WhatsAppLink } from "@/components/ui/whatsapp-link";
@@ -34,11 +35,12 @@ export default async function OrderSuccessPage({ params }: PageProps) {
   const tc = await getTranslations("common");
 
   // Validate against the backend (never trust the route param blindly).
-  let order: CustomerOrder | null = null;
+  let order: CustomerOrder;
   try {
     order = await myOrder(orderNumber);
-  } catch {
-    order = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
 
   return (
@@ -52,31 +54,27 @@ export default async function OrderSuccessPage({ params }: PageProps) {
       <dl className="mt-6 w-full max-w-sm space-y-2 rounded-card border border-bordergold/40 bg-cream p-5 text-sm">
         <div className="flex justify-between">
           <dt className="text-taupe">{t("orderNumber")}</dt>
-          <dd className="font-semibold text-mocha">{order?.orderNumber ?? orderNumber}</dd>
+          <dd className="font-semibold text-mocha">{order.orderNumber}</dd>
         </div>
-        {order && (
-          <>
-            <div className="flex justify-between">
-              <dt className="text-taupe">{t("status")}</dt>
-              <dd className="text-mocha">{to(`status_${order.status}`)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-taupe">{t("paymentMethod")}</dt>
-              <dd className="text-mocha">{tp(order.paymentMethod)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-taupe">{t("total")}</dt>
-              <dd className="font-semibold text-mocha">
-                {formatPrice(order.grandTotal, locale)}
-              </dd>
-            </div>
-          </>
-        )}
+        <div className="flex justify-between">
+          <dt className="text-taupe">{t("status")}</dt>
+          <dd className="text-mocha">{to(`status_${order.status}`)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-taupe">{t("paymentMethod")}</dt>
+          <dd className="text-mocha">{tp(order.paymentMethod)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-taupe">{t("total")}</dt>
+          <dd className="font-semibold text-mocha">
+            {formatPrice(order.grandTotal, locale)}
+          </dd>
+        </div>
       </dl>
 
       <div className="mt-6 flex flex-col items-center gap-3">
         <Link
-          href={`/account/orders/${order?.orderNumber ?? orderNumber}`}
+          href={`/account/orders/${order.orderNumber}`}
           className="text-bronze hover:underline"
         >
           {t("viewOrder")}

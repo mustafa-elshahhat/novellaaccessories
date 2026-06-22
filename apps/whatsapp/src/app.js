@@ -13,7 +13,7 @@ export function createApp(config, client, circuitBreaker) {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '64kb' }));
 
-  registerHealthRoutes(app, client);
+  registerHealthRoutes(app, config, client);
   registerStatusRoutes(app, config, client);
   registerPairingRoutes(app, config, client);
   registerMessagesRoutes(app, config, client, circuitBreaker);

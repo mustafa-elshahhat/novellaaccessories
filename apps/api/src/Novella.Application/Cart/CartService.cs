@@ -78,9 +78,9 @@ public sealed class CartService
         var cart = await LoadCartAsync(customerId, ct);
         var item = cart.Items.FirstOrDefault(i => i.Id == itemId) ?? throw AppException.NotFound("Cart item not found.");
 
-        var variant = await _db.ProductVariants.FirstOrDefaultAsync(v => v.Id == item.ProductVariantId, ct)
+        var variant = await _db.ProductVariants.Include(v => v.Product).FirstOrDefaultAsync(v => v.Id == item.ProductVariantId, ct)
             ?? throw AppException.NotFound("Product variant not found.");
-        if (req.Quantity > variant.StockQuantity)
+        if (variant.Product?.IsActive != true || !variant.IsActive || req.Quantity > variant.StockQuantity)
             throw new AppException(ErrorCodes.VariantOutOfStock, "Requested quantity exceeds available stock.", 409);
 
         item.Quantity = req.Quantity;
@@ -139,6 +139,13 @@ public sealed class CartService
 
     private async Task<Domain.Entities.Cart> LoadCartAsync(Guid customerId, CancellationToken ct)
     {
+        var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(c => c.Id == customerId, ct)
+            ?? throw AppException.NotFound("Customer not found.");
+        if (!customer.IsActive)
+            throw AppException.Forbidden("Customer account is inactive.");
+        if (!customer.IsPhoneVerified)
+            throw new AppException(ErrorCodes.PhoneNotVerified, "Phone number is not verified.", 403);
+
         var cart = await _db.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.CustomerId == customerId, ct);
         if (cart is null)
         {
@@ -176,7 +183,11 @@ public sealed class CartService
 
             items.Add(new CartItemDto(
                 item.Id, r.Product.Id, r.Variant.Id,
-                r.Product.NameAr, r.Product.NameEn, r.Variant.NameAr, r.Variant.NameEn, r.Variant.Sku,
+                r.Product.NameAr, r.Product.NameEn, r.Product.SlugAr, r.Product.SlugEn,
+                r.Product.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.SortOrder).FirstOrDefault()?.Url,
+                r.Product.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.SortOrder).FirstOrDefault()?.AltAr,
+                r.Product.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.SortOrder).FirstOrDefault()?.AltEn,
+                r.Variant.NameAr, r.Variant.NameEn, r.Variant.Sku,
                 qty, original, final, final * qty,
                 r.Available, r.QuantityAdjusted));
         }

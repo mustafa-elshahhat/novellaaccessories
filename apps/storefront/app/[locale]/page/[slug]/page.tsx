@@ -5,6 +5,7 @@ import { pick } from "@/lib/i18n/localize";
 import type { Locale } from "@/lib/i18n/routing";
 import { getPage } from "@/lib/api/public";
 import type { StaticPage } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { buildPublicMetadata } from "@/lib/seo/metadata";
 import { SafeHtml } from "@/components/ui/safe-html";
 import { ContentBlock } from "@/components/ui/content-block";
@@ -20,8 +21,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let page: StaticPage | null = null;
   try {
     page = await getPage(slug);
-  } catch {
-    page = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return {};
+    throw error;
   }
   if (!page) return {};
   const title =
@@ -44,10 +46,10 @@ export default async function StaticContentPage({ params }: PageProps) {
   let page: StaticPage | null = null;
   try {
     page = await getPage(slug);
-  } catch {
-    page = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
-  if (!page) notFound();
 
   const tc = await getTranslations("common");
   const title = pick(locale, page.titleAr, page.titleEn);
@@ -70,6 +72,11 @@ export default async function StaticContentPage({ params }: PageProps) {
       <ContentBlock
         ar={page.aeoSummaryAr}
         en={page.aeoSummaryEn}
+        locale={locale as Locale}
+      />
+      <ContentBlock
+        ar={page.geoContentAr}
+        en={page.geoContentEn}
         locale={locale as Locale}
       />
     </article>

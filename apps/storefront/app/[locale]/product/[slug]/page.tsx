@@ -5,6 +5,7 @@ import { pick, pickSlug } from "@/lib/i18n/localize";
 import type { Locale } from "@/lib/i18n/routing";
 import { getProduct, getFeaturedProducts } from "@/lib/api/public";
 import type { PublicProduct, PublicProductListItem } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { buildPublicMetadata, absoluteUrl } from "@/lib/seo/metadata";
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { ProductGallery } from "@/features/catalog/product-gallery";
@@ -23,8 +24,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let product: PublicProduct | null = null;
   try {
     product = await getProduct(slug);
-  } catch {
-    product = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return {};
+    throw error;
   }
   if (!product) return {};
   const title =
@@ -51,10 +53,10 @@ export default async function ProductPage({ params }: PageProps) {
   let product: PublicProduct | null = null;
   try {
     product = await getProduct(slug);
-  } catch {
-    product = null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
-  if (!product) notFound();
 
   const tNav = await getTranslations("nav");
   const tp = await getTranslations("products");
@@ -65,13 +67,8 @@ export default async function ProductPage({ params }: PageProps) {
   const localizedSlug = pickSlug(locale, product.slugAr, product.slugEn);
   const url = absoluteUrl(`/${locale}/product/${localizedSlug}`);
 
-  let related: PublicProductListItem[] = [];
-  try {
-    const featured = await getFeaturedProducts();
-    related = featured.filter((p) => p.id !== product!.id).slice(0, 8);
-  } catch {
-    related = [];
-  }
+  const featured = await getFeaturedProducts();
+  const related: PublicProductListItem[] = featured.filter((p) => p.id !== product.id).slice(0, 8);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">

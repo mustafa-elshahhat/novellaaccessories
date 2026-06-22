@@ -69,14 +69,14 @@ public sealed class PaymentService
 
     public async Task HandleCallbackAsync(string providerName, string rawPayload, IDictionary<string, string> headers, CancellationToken ct)
     {
-        // Webhook secret validation (header or query token must match configured secret).
-        if (!string.IsNullOrEmpty(_options.WebhookSecret))
-        {
-            var provided = headers.TryGetValue("x-webhook-secret", out var h) ? h
-                : headers.TryGetValue("X-Webhook-Secret", out var h2) ? h2 : null;
-            if (!FixedTimeEquals(provided, _options.WebhookSecret))
-                throw AppException.Unauthorized("Invalid webhook signature.");
-        }
+        // Webhooks must fail closed. A missing secret means the provider is not production-ready.
+        if (string.IsNullOrWhiteSpace(_options.WebhookSecret))
+            throw AppException.Unauthorized("Payment webhook secret is not configured.");
+
+        var provided = headers.TryGetValue("x-webhook-secret", out var h) ? h
+            : headers.TryGetValue("X-Webhook-Secret", out var h2) ? h2 : null;
+        if (!FixedTimeEquals(provided, _options.WebhookSecret))
+            throw AppException.Unauthorized("Invalid webhook signature.");
 
         var provider = _factory.ForProvider(providerName)
             ?? throw new AppException(ErrorCodes.PaymentProviderNotActive, $"Unknown payment provider '{providerName}'.", 404);

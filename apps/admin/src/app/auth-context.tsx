@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((profile) => {
         if (cancelled) return;
         setAdmin(profile);
-        setStatus(profile.role === "Admin" ? "authenticated" : "forbidden");
+        setStatus("authenticated");
       })
       .catch(() => {
         if (!cancelled) clearAuth("Your session has expired. Please sign in again.");
@@ -65,10 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(result.token);
       sessionStorage.setItem(storageKey, result.token);
       const profile = await authApi.me();
-      if (profile.role !== "Admin") {
-        clearAuth("This account does not have admin access.");
-        return;
-      }
       setAdmin(profile);
       setStatus("authenticated");
       setMessage(null);

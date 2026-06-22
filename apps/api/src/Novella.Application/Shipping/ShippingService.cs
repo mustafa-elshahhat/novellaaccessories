@@ -43,6 +43,7 @@ public sealed class ShippingService
 
     public async Task<AdminGovernorateDto> CreateAsync(GovernorateUpsertRequest req, CancellationToken ct)
     {
+        Validate(req);
         var g = new ShippingGovernorate
         {
             Id = Guid.NewGuid(),
@@ -59,6 +60,7 @@ public sealed class ShippingService
 
     public async Task<AdminGovernorateDto> UpdateAsync(Guid id, GovernorateUpsertRequest req, CancellationToken ct)
     {
+        Validate(req);
         var g = await _db.ShippingGovernorates.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Governorate not found.");
         g.NameAr = req.NameAr; g.NameEn = req.NameEn;
         g.CustomerPaidShippingFee = req.CustomerPaidShippingFee;
@@ -88,4 +90,14 @@ public sealed class ShippingService
 
     private static AdminGovernorateDto Map(ShippingGovernorate g)
         => new(g.Id, g.NameAr, g.NameEn, g.CustomerPaidShippingFee, g.ActualShippingCost, g.IsActive, g.SortOrder);
+
+    private static void Validate(GovernorateUpsertRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.NameAr) || string.IsNullOrWhiteSpace(req.NameEn))
+            throw AppException.Validation("Arabic and English governorate names are required.");
+        if (req.CustomerPaidShippingFee < 0 || req.ActualShippingCost < 0)
+            throw AppException.Validation("Shipping fees cannot be negative.");
+        if (req.SortOrder < 0)
+            throw AppException.Validation("Sort order cannot be negative.");
+    }
 }

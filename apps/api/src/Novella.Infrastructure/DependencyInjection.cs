@@ -32,7 +32,11 @@ public static class DependencyInjection
         services.AddDbContext<NovellaDbContext>(options =>
         {
             if (!string.IsNullOrWhiteSpace(connectionString))
-                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure());
+                options.UseSqlServer(connectionString, sql =>
+                {
+                    sql.EnableRetryOnFailure();
+                    sql.CommandTimeout(0);
+                });
         });
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<NovellaDbContext>());
         services.AddScoped<DataSeeder>();

@@ -37,7 +37,7 @@ public sealed class PricingAssembler
     public async Task<List<ResolvedLine>> ResolveAsync(IReadOnlyList<LineRequest> lines, bool strict, CancellationToken ct)
     {
         var variantIds = lines.Select(l => l.ProductVariantId).Distinct().ToList();
-        var variants = await _db.ProductVariants.Include(v => v.Product)
+        var variants = await _db.ProductVariants.Include(v => v.Product).ThenInclude(p => p!.Images)
             .Where(v => variantIds.Contains(v.Id))
             .ToDictionaryAsync(v => v.Id, ct);
 
