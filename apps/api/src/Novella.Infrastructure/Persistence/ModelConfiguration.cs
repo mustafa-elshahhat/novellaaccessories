@@ -57,10 +57,8 @@ internal static class ModelConfiguration
             e.Property(x => x.ImagePublicId).HasMaxLength(300);
             e.Property(x => x.ImageAltAr).HasMaxLength(300);
             e.Property(x => x.ImageAltEn).HasMaxLength(300);
-            e.Property(x => x.SeoTitleAr).HasMaxLength(300);
-            e.Property(x => x.SeoTitleEn).HasMaxLength(300);
-            e.Property(x => x.SeoDescriptionAr).HasMaxLength(500);
-            e.Property(x => x.SeoDescriptionEn).HasMaxLength(500);
+            e.Property(x => x.DescriptionAr).HasMaxLength(2000);
+            e.Property(x => x.DescriptionEn).HasMaxLength(2000);
             e.HasIndex(x => x.SlugAr).IsUnique();
             e.HasIndex(x => x.SlugEn).IsUnique();
             e.HasMany(x => x.Products).WithOne(x => x.Category!).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
@@ -72,10 +70,6 @@ internal static class ModelConfiguration
             e.Property(x => x.NameEn).HasMaxLength(300);
             e.Property(x => x.SlugAr).HasMaxLength(320);
             e.Property(x => x.SlugEn).HasMaxLength(320);
-            e.Property(x => x.SeoTitleAr).HasMaxLength(300);
-            e.Property(x => x.SeoTitleEn).HasMaxLength(300);
-            e.Property(x => x.SeoDescriptionAr).HasMaxLength(500);
-            e.Property(x => x.SeoDescriptionEn).HasMaxLength(500);
             e.HasIndex(x => x.SlugAr).IsUnique();
             e.HasIndex(x => x.SlugEn).IsUnique();
             e.HasIndex(x => x.CategoryId);
@@ -241,10 +235,6 @@ internal static class ModelConfiguration
             e.Property(x => x.TitleEn).HasMaxLength(300);
             e.Property(x => x.SlugAr).HasMaxLength(300);
             e.Property(x => x.SlugEn).HasMaxLength(300);
-            e.Property(x => x.SeoTitleAr).HasMaxLength(300);
-            e.Property(x => x.SeoTitleEn).HasMaxLength(300);
-            e.Property(x => x.SeoDescriptionAr).HasMaxLength(500);
-            e.Property(x => x.SeoDescriptionEn).HasMaxLength(500);
             e.HasIndex(x => x.Key).IsUnique();
             e.HasIndex(x => x.SlugAr).IsUnique();
             e.HasIndex(x => x.SlugEn).IsUnique();

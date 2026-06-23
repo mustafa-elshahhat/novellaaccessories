@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { publicEnv } from "@/lib/env";
 
+// Pure text builders for automatically generated metadata live in a server-free module so they
+// can be unit-tested in isolation. Re-exported here as the single metadata entry point.
+export {
+  brandName,
+  entityTitle,
+  excerpt,
+  productMetaDescription,
+  categoryMetaDescription,
+  pageMetaDescription,
+} from "./metadata-text";
+
 /** Robots directive for private/transactional pages (cart, checkout, account, auth, …). */
 export const NOINDEX: Metadata["robots"] = {
   index: false,

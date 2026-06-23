@@ -45,8 +45,6 @@ public sealed class DevelopmentSeedTests : IDisposable
         var page = await verify.StaticPages.SingleAsync(p => p.Key == "contact");
         page.ContentEn.Should().NotContain("(placeholder)");
         page.ContentEn.Should().Contain("WhatsApp");
-        page.AeoSummaryEn.Should().NotBeNullOrWhiteSpace();
-        page.GeoContentEn.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]

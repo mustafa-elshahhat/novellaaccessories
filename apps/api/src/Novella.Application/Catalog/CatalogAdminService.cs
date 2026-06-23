@@ -22,22 +22,20 @@ public sealed class CatalogAdminService
 
     public async Task<IReadOnlyList<AdminCategoryDto>> GetCategoriesAsync(CancellationToken ct)
         => await _db.Categories.AsNoTracking().OrderBy(c => c.SortOrder)
-            .Select(c => new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
+            .Select(c => new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn,
+                c.DescriptionAr, c.DescriptionEn, c.ImageUrl, c.ImagePublicId,
                 c.ImageAltAr, c.ImageAltEn,
-                c.SortOrder, c.IsActive, c.Products.Count,
-                c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
-                c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn))
+                c.SortOrder, c.IsActive, c.Products.Count))
             .ToListAsync(ct);
 
     public async Task<AdminCategoryDto> GetCategoryAsync(Guid id, CancellationToken ct)
     {
         var c = await _db.Categories.AsNoTracking().Include(x => x.Products).FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw AppException.NotFound("Category not found.");
-        return new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImagePublicId,
+        return new AdminCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn,
+            c.DescriptionAr, c.DescriptionEn, c.ImageUrl, c.ImagePublicId,
             c.ImageAltAr, c.ImageAltEn,
-            c.SortOrder, c.IsActive, c.Products.Count,
-            c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn,
-            c.AeoSummaryAr, c.AeoSummaryEn, c.GeoContentAr, c.GeoContentEn);
+            c.SortOrder, c.IsActive, c.Products.Count);
     }
 
     public async Task<AdminCategoryDto> CreateCategoryAsync(CategoryUpsertRequest req, CancellationToken ct)
@@ -48,18 +46,17 @@ public sealed class CatalogAdminService
             Id = Guid.NewGuid(),
             NameAr = req.NameAr,
             NameEn = req.NameEn,
-            SlugAr = await UniqueCategorySlug(Slug.Ensure(req.SlugAr, req.NameAr), true, null, ct),
-            SlugEn = await UniqueCategorySlug(Slug.Ensure(req.SlugEn, req.NameEn), false, null, ct),
+            // Slugs are system-owned: generated from the name on creation, never supplied by the admin.
+            SlugAr = await UniqueCategorySlug(Slug.Ensure(null, req.NameAr), true, null, ct),
+            SlugEn = await UniqueCategorySlug(Slug.Ensure(null, req.NameEn), false, null, ct),
+            DescriptionAr = req.DescriptionAr,
+            DescriptionEn = req.DescriptionEn,
             ImageUrl = req.ImageUrl,
             ImagePublicId = req.ImagePublicId,
             ImageAltAr = req.ImageAltAr,
             ImageAltEn = req.ImageAltEn,
             SortOrder = req.SortOrder,
             IsActive = req.IsActive,
-            SeoTitleAr = req.SeoTitleAr, SeoTitleEn = req.SeoTitleEn,
-            SeoDescriptionAr = req.SeoDescriptionAr, SeoDescriptionEn = req.SeoDescriptionEn,
-            AeoSummaryAr = req.AeoSummaryAr, AeoSummaryEn = req.AeoSummaryEn,
-            GeoContentAr = req.GeoContentAr, GeoContentEn = req.GeoContentEn,
             CreatedAt = _clock.UtcNow
         };
         _db.Categories.Add(c);
@@ -72,15 +69,11 @@ public sealed class CatalogAdminService
         ValidateCategory(req);
         var c = await _db.Categories.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Category not found.");
         c.NameAr = req.NameAr; c.NameEn = req.NameEn;
-        c.SlugAr = await UniqueCategorySlug(Slug.Ensure(req.SlugAr, req.NameAr), true, id, ct);
-        c.SlugEn = await UniqueCategorySlug(Slug.Ensure(req.SlugEn, req.NameEn), false, id, ct);
+        // Existing slugs are intentionally NOT regenerated on rename: published URLs must stay stable.
+        c.DescriptionAr = req.DescriptionAr; c.DescriptionEn = req.DescriptionEn;
         c.ImageUrl = req.ImageUrl; c.ImagePublicId = req.ImagePublicId;
         c.ImageAltAr = req.ImageAltAr; c.ImageAltEn = req.ImageAltEn;
         c.SortOrder = req.SortOrder; c.IsActive = req.IsActive;
-        c.SeoTitleAr = req.SeoTitleAr; c.SeoTitleEn = req.SeoTitleEn;
-        c.SeoDescriptionAr = req.SeoDescriptionAr; c.SeoDescriptionEn = req.SeoDescriptionEn;
-        c.AeoSummaryAr = req.AeoSummaryAr; c.AeoSummaryEn = req.AeoSummaryEn;
-        c.GeoContentAr = req.GeoContentAr; c.GeoContentEn = req.GeoContentEn;
         c.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
         return await GetCategoryAsync(id, ct);
@@ -150,17 +143,14 @@ public sealed class CatalogAdminService
             Id = Guid.NewGuid(),
             CategoryId = req.CategoryId,
             NameAr = req.NameAr, NameEn = req.NameEn,
-            SlugAr = await UniqueProductSlug(Slug.Ensure(req.SlugAr, req.NameAr), true, null, ct),
-            SlugEn = await UniqueProductSlug(Slug.Ensure(req.SlugEn, req.NameEn), false, null, ct),
+            // Slugs are system-owned: generated from the name on creation, never supplied by the admin.
+            SlugAr = await UniqueProductSlug(Slug.Ensure(null, req.NameAr), true, null, ct),
+            SlugEn = await UniqueProductSlug(Slug.Ensure(null, req.NameEn), false, null, ct),
             DescriptionAr = req.DescriptionAr, DescriptionEn = req.DescriptionEn,
             BasePurchasePrice = req.BasePurchasePrice, BaseSellingPrice = req.BaseSellingPrice,
             ProductDiscountPercentage = req.ProductDiscountPercentage,
             ProductDiscountStartAt = req.ProductDiscountStartAt, ProductDiscountEndAt = req.ProductDiscountEndAt,
             IsFeatured = req.IsFeatured, IsActive = req.IsActive,
-            SeoTitleAr = req.SeoTitleAr, SeoTitleEn = req.SeoTitleEn,
-            SeoDescriptionAr = req.SeoDescriptionAr, SeoDescriptionEn = req.SeoDescriptionEn,
-            AeoSummaryAr = req.AeoSummaryAr, AeoSummaryEn = req.AeoSummaryEn,
-            GeoContentAr = req.GeoContentAr, GeoContentEn = req.GeoContentEn,
             CreatedAt = _clock.UtcNow
         };
         _db.Products.Add(p);
@@ -175,17 +165,12 @@ public sealed class CatalogAdminService
         await EnsureCategoryExists(req.CategoryId, ct);
         p.CategoryId = req.CategoryId;
         p.NameAr = req.NameAr; p.NameEn = req.NameEn;
-        p.SlugAr = await UniqueProductSlug(Slug.Ensure(req.SlugAr, req.NameAr), true, id, ct);
-        p.SlugEn = await UniqueProductSlug(Slug.Ensure(req.SlugEn, req.NameEn), false, id, ct);
+        // Existing slugs are intentionally NOT regenerated on rename: published URLs must stay stable.
         p.DescriptionAr = req.DescriptionAr; p.DescriptionEn = req.DescriptionEn;
         p.BasePurchasePrice = req.BasePurchasePrice; p.BaseSellingPrice = req.BaseSellingPrice;
         p.ProductDiscountPercentage = req.ProductDiscountPercentage;
         p.ProductDiscountStartAt = req.ProductDiscountStartAt; p.ProductDiscountEndAt = req.ProductDiscountEndAt;
         p.IsFeatured = req.IsFeatured; p.IsActive = req.IsActive;
-        p.SeoTitleAr = req.SeoTitleAr; p.SeoTitleEn = req.SeoTitleEn;
-        p.SeoDescriptionAr = req.SeoDescriptionAr; p.SeoDescriptionEn = req.SeoDescriptionEn;
-        p.AeoSummaryAr = req.AeoSummaryAr; p.AeoSummaryEn = req.AeoSummaryEn;
-        p.GeoContentAr = req.GeoContentAr; p.GeoContentEn = req.GeoContentEn;
         p.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
         return await GetProductAsync(id, ct);
@@ -438,9 +423,7 @@ public sealed class CatalogAdminService
         p.IsFeatured, p.IsActive,
         p.Variants.Select(MapVariant).ToList(),
         p.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.SortOrder)
-            .Select(i => new PublicProductImageDto(i.Id, i.Url, i.AltAr, i.AltEn, i.SortOrder, i.IsPrimary)).ToList(),
-        p.SeoTitleAr, p.SeoTitleEn, p.SeoDescriptionAr, p.SeoDescriptionEn,
-        p.AeoSummaryAr, p.AeoSummaryEn, p.GeoContentAr, p.GeoContentEn);
+            .Select(i => new PublicProductImageDto(i.Id, i.Url, i.AltAr, i.AltEn, i.SortOrder, i.IsPrimary)).ToList());
 
     private static AdminVariantDto MapVariant(ProductVariant v) => new(
         v.Id, v.ProductId, v.Sku, v.NameAr, v.NameEn, v.Size, v.ColorAr, v.ColorEn, v.MaterialAr, v.MaterialEn,

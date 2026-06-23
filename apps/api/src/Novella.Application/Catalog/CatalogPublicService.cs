@@ -20,8 +20,8 @@ public sealed class CatalogPublicService
         => await _db.Categories.AsNoTracking()
             .Where(c => c.IsActive)
             .OrderBy(c => c.SortOrder)
-            .Select(c => new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder,
-                c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn))
+            .Select(c => new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn,
+                c.DescriptionAr, c.DescriptionEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder))
             .ToListAsync(ct);
 
     public async Task<PublicCategoryDto> GetCategoryBySlugAsync(string slug, CancellationToken ct)
@@ -29,8 +29,8 @@ public sealed class CatalogPublicService
         var c = await _db.Categories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.IsActive && (x.SlugAr == slug || x.SlugEn == slug), ct)
             ?? throw AppException.NotFound("Category not found.");
-        return new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder,
-            c.SeoTitleAr, c.SeoTitleEn, c.SeoDescriptionAr, c.SeoDescriptionEn);
+        return new PublicCategoryDto(c.Id, c.NameAr, c.NameEn, c.SlugAr, c.SlugEn,
+            c.DescriptionAr, c.DescriptionEn, c.ImageUrl, c.ImageAltAr, c.ImageAltEn, c.SortOrder);
     }
 
     public async Task<PagedResult<PublicProductListItemDto>> GetCategoryProductsAsync(string slug, ProductListQuery query, CancellationToken ct)

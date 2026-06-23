@@ -13,10 +13,9 @@ export type PageSlug = (typeof PAGE_SLUGS)[keyof typeof PAGE_SLUGS];
 export const BRAND = {
   nameAr: "نوفيلا أكسسوارات",
   nameEn: "Novella Accessories",
-  defaultSeoTitleAr: "نوفيلا أكسسوارات",
-  defaultSeoTitleEn: "Novella Accessories",
-  defaultSeoDescriptionAr: "إكسسوارات أنيقة بجودة عالية.",
-  defaultSeoDescriptionEn: "Elegant, high-quality accessories.",
+  // Visible brand tagline. Drives the home page's automatically generated description.
+  taglineAr: "إكسسوارات أنيقة بجودة عالية.",
+  taglineEn: "Elegant, high-quality accessories.",
 } as const;
 
 /** Routes that must never be indexed (transactional / auth / account). */

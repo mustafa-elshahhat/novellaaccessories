@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pick } from "@/lib/i18n/localize";
-import type { Locale } from "@/lib/i18n/routing";
 import { getPage } from "@/lib/api/public";
 import type { StaticPage } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/errors";
-import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildPublicMetadata, entityTitle, pageMetaDescription } from "@/lib/seo/metadata";
 import { SafeHtml } from "@/components/ui/safe-html";
-import { ContentBlock } from "@/components/ui/content-block";
 import { WhatsAppLink } from "@/components/ui/whatsapp-link";
 import { PAGE_SLUGS } from "@/lib/constants";
 
@@ -26,14 +24,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     throw error;
   }
   if (!page) return {};
-  const title =
-    pick(locale, page.seoTitleAr, page.seoTitleEn) ||
-    pick(locale, page.titleAr, page.titleEn);
-  const description = pick(locale, page.seoDescriptionAr, page.seoDescriptionEn);
+  const title = pick(locale, page.titleAr, page.titleEn);
+  const description = pageMetaDescription(
+    locale,
+    pick(locale, page.contentAr, page.contentEn),
+    title,
+  );
   return buildPublicMetadata({
     locale,
-    title,
-    description: description || undefined,
+    title: entityTitle(locale, title),
+    description,
     pathAr: `/page/${page.slugAr}`,
     pathEn: `/page/${page.slugEn}`,
   });
@@ -68,17 +68,6 @@ export default async function StaticContentPage({ params }: PageProps) {
           </WhatsAppLink>
         </div>
       )}
-
-      <ContentBlock
-        ar={page.aeoSummaryAr}
-        en={page.aeoSummaryEn}
-        locale={locale as Locale}
-      />
-      <ContentBlock
-        ar={page.geoContentAr}
-        en={page.geoContentEn}
-        locale={locale as Locale}
-      />
     </article>
   );
 }

@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pick } from "@/lib/i18n/localize";
-import type { Locale } from "@/lib/i18n/routing";
 import { getFaq } from "@/lib/api/public";
 import type { StaticPage } from "@/lib/api/types";
-import { buildPublicMetadata } from "@/lib/seo/metadata";
+import { buildPublicMetadata, entityTitle } from "@/lib/seo/metadata";
 import { JsonLd, faqJsonLd } from "@/lib/seo/jsonld";
 import { SafeHtml } from "@/components/ui/safe-html";
-import { ContentBlock } from "@/components/ui/content-block";
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -20,7 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const tf = await getTranslations({ locale, namespace: "footer" });
   const faq = await loadFaq();
   const title = pick(locale, faq.titleAr, faq.titleEn) || tf("faq");
-  return buildPublicMetadata({ locale, title, pathAr: "/faq", pathEn: "/faq" });
+  return buildPublicMetadata({ locale, title: entityTitle(locale, title), pathAr: "/faq", pathEn: "/faq" });
 }
 
 export default async function FaqPage({ params }: PageProps) {
@@ -37,8 +35,6 @@ export default async function FaqPage({ params }: PageProps) {
       {faqItems.length > 0 && <JsonLd data={faqJsonLd(faqItems)} />}
       <h1 className="mb-6 text-2xl font-semibold text-deepbrown sm:text-3xl">{title}</h1>
       <SafeHtml html={content} />
-      <ContentBlock ar={faq.aeoSummaryAr} en={faq.aeoSummaryEn} locale={locale as Locale} />
-      <ContentBlock ar={faq.geoContentAr} en={faq.geoContentEn} locale={locale as Locale} />
     </article>
   );
 }

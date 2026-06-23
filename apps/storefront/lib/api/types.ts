@@ -48,14 +48,12 @@ export interface PublicCategory {
   nameEn: string;
   slugAr: string;
   slugEn: string;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
   imageUrl: string | null;
   imageAltAr?: string | null;
   imageAltEn?: string | null;
   sortOrder: number;
-  seoTitleAr?: string | null;
-  seoTitleEn?: string | null;
-  seoDescriptionAr?: string | null;
-  seoDescriptionEn?: string | null;
 }
 
 export interface PublicProductListItem {
@@ -117,14 +115,6 @@ export interface PublicProduct {
   isFeatured: boolean;
   images: PublicProductImage[];
   variants: PublicProductVariant[];
-  seoTitleAr: string | null;
-  seoTitleEn: string | null;
-  seoDescriptionAr: string | null;
-  seoDescriptionEn: string | null;
-  aeoSummaryAr: string | null;
-  aeoSummaryEn: string | null;
-  geoContentAr: string | null;
-  geoContentEn: string | null;
 }
 
 export interface Hero {
@@ -158,14 +148,6 @@ export interface StaticPage {
   slugEn: string;
   contentAr: string;
   contentEn: string;
-  seoTitleAr: string | null;
-  seoTitleEn: string | null;
-  seoDescriptionAr: string | null;
-  seoDescriptionEn: string | null;
-  aeoSummaryAr: string | null;
-  aeoSummaryEn: string | null;
-  geoContentAr: string | null;
-  geoContentEn: string | null;
   isActive: boolean;
 }
 
@@ -296,26 +278,6 @@ export interface AuthTokenResponse {
 export interface RegisterResponse {
   requiresVerification: boolean;
   phoneNumber: string;
-}
-
-export interface SeoMetadata {
-  entityType: string;
-  entityId: string;
-  slugAr: string;
-  slugEn: string;
-  seoTitleAr: string | null;
-  seoTitleEn: string | null;
-  seoDescriptionAr: string | null;
-  seoDescriptionEn: string | null;
-  aeoSummaryAr: string | null;
-  aeoSummaryEn: string | null;
-  geoContentAr: string | null;
-  geoContentEn: string | null;
-}
-
-export interface ProductSeo {
-  meta: SeoMetadata;
-  product: PublicProduct;
 }
 
 export interface SitemapEntry {

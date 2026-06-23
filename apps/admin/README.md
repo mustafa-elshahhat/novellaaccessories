@@ -69,7 +69,7 @@ Admin role is mandatory. Customer tokens cannot pass `/api/admin/auth/me` or the
 
 - Dashboard KPIs and alerts.
 - Products, images, variants, stock adjustment, inventory movements.
-- Categories with bilingual metadata.
+- Categories with bilingual name and visible customer-facing descriptions.
 - Orders, shipping updates, status transitions, cancellation.
 - Customers and safe admin-only customer detail aggregates.
 - Coupons and two-delivered-orders settings.
@@ -79,8 +79,13 @@ Admin role is mandatory. Customer tokens cannot pass `/api/admin/auth/me` or the
 - Payment readiness with status-only secret indicators.
 - Expenses.
 - Sales, profit, products, categories, coupons, payments, governorates, expenses, and analytics reports.
-- Static pages and SEO/AEO/GEO editor.
+- Static pages (title, content, visibility only).
 - Site and reminder settings.
+
+> SEO, AEO, and GEO are generated automatically from normal business content and code; the admin
+> never edits technical optimization fields. Product/category descriptions and static-page content
+> drive the storefront's metadata and visible guidance. Slugs are system-generated and stable, and
+> are never shown or edited in the admin. There is no standalone SEO model or admin SEO workflow.
 
 ## Security Policy
 

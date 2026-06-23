@@ -12,16 +12,14 @@ public sealed record HeroUpsertRequest(
     string? SubtitleAr, string? SubtitleEn, string? CtaTextAr, string? CtaTextEn, string? CtaLink,
     Guid? LinkedProductId, bool IsActive, int SortOrder);
 
+// Key and slugs are internal application concerns and are not exposed for editing. SEO/AEO/GEO
+// metadata is generated automatically by the storefront from the page title and content.
 public sealed record StaticPageDto(
     Guid Id, string Key, string TitleAr, string TitleEn, string SlugAr, string SlugEn,
-    string ContentAr, string ContentEn,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn, bool IsActive);
+    string ContentAr, string ContentEn, bool IsActive);
 
 public sealed record StaticPageUpdateRequest(
-    string TitleAr, string TitleEn, string ContentAr, string ContentEn,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn, bool IsActive);
+    string TitleAr, string TitleEn, string ContentAr, string ContentEn, bool IsActive);
 
 public sealed record HomeDto(
     IReadOnlyList<HeroDto> Heroes,

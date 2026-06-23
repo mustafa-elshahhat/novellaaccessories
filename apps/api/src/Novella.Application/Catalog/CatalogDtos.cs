@@ -6,8 +6,8 @@ namespace Novella.Application.Catalog;
 
 public sealed record PublicCategoryDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
-    string? ImageUrl, string? ImageAltAr, string? ImageAltEn, int SortOrder,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn);
+    string? DescriptionAr, string? DescriptionEn,
+    string? ImageUrl, string? ImageAltAr, string? ImageAltEn, int SortOrder);
 
 public sealed record PublicVariantDto(
     Guid Id, string? NameAr, string? NameEn, string? Size,
@@ -22,9 +22,7 @@ public sealed record PublicProductDto(
     string? DescriptionAr, string? DescriptionEn,
     decimal OriginalPrice, decimal FinalPrice, bool HasDiscount, decimal? DiscountPercentage,
     bool IsAvailable, bool IsFeatured,
-    IReadOnlyList<PublicProductImageDto> Images, IReadOnlyList<PublicVariantDto> Variants,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
+    IReadOnlyList<PublicProductImageDto> Images, IReadOnlyList<PublicVariantDto> Variants);
 
 public sealed record PublicProductListItemDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
@@ -41,26 +39,23 @@ public sealed class ProductListQuery : PageQuery
 
 // ---------- Admin DTOs (may include cost/stock — admin only) ----------
 
+// Admin upsert requests intentionally OMIT slugs and SEO/AEO/GEO fields: slugs are system-owned
+// (generated on creation, stable after) and technical optimization metadata is generated automatically.
 public sealed record CategoryUpsertRequest(
-    string NameAr, string NameEn, string? SlugAr, string? SlugEn,
-    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
+    string NameAr, string NameEn, string? DescriptionAr, string? DescriptionEn,
+    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive);
 
 public sealed record AdminCategoryDto(
     Guid Id, string NameAr, string NameEn, string SlugAr, string SlugEn,
-    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive, int ProductCount,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
+    string? DescriptionAr, string? DescriptionEn,
+    string? ImageUrl, string? ImagePublicId, string? ImageAltAr, string? ImageAltEn, int SortOrder, bool IsActive, int ProductCount);
 
 public sealed record ProductUpsertRequest(
-    Guid CategoryId, string NameAr, string NameEn, string? SlugAr, string? SlugEn,
+    Guid CategoryId, string NameAr, string NameEn,
     string? DescriptionAr, string? DescriptionEn,
     decimal BasePurchasePrice, decimal BaseSellingPrice,
     decimal? ProductDiscountPercentage, DateTime? ProductDiscountStartAt, DateTime? ProductDiscountEndAt,
-    bool IsFeatured, bool IsActive,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
+    bool IsFeatured, bool IsActive);
 
 public sealed record AdminProductDto(
     Guid Id, Guid CategoryId, string NameAr, string NameEn, string SlugAr, string SlugEn,
@@ -68,9 +63,7 @@ public sealed record AdminProductDto(
     decimal BasePurchasePrice, decimal BaseSellingPrice,
     decimal? ProductDiscountPercentage, DateTime? ProductDiscountStartAt, DateTime? ProductDiscountEndAt,
     bool IsFeatured, bool IsActive,
-    IReadOnlyList<AdminVariantDto> Variants, IReadOnlyList<PublicProductImageDto> Images,
-    string? SeoTitleAr, string? SeoTitleEn, string? SeoDescriptionAr, string? SeoDescriptionEn,
-    string? AeoSummaryAr, string? AeoSummaryEn, string? GeoContentAr, string? GeoContentEn);
+    IReadOnlyList<AdminVariantDto> Variants, IReadOnlyList<PublicProductImageDto> Images);
 
 public sealed record VariantUpsertRequest(
     string Sku, string? NameAr, string? NameEn, string? Size,

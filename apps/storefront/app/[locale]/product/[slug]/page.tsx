@@ -2,18 +2,21 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { pick, pickSlug } from "@/lib/i18n/localize";
-import type { Locale } from "@/lib/i18n/routing";
 import { getProduct, getFeaturedProducts } from "@/lib/api/public";
 import type { PublicProduct, PublicProductListItem } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/errors";
-import { buildPublicMetadata, absoluteUrl } from "@/lib/seo/metadata";
+import {
+  buildPublicMetadata,
+  absoluteUrl,
+  entityTitle,
+  productMetaDescription,
+} from "@/lib/seo/metadata";
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { ProductGallery } from "@/features/catalog/product-gallery";
 import { ProductPurchase } from "@/features/catalog/product-purchase";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Section } from "@/components/ui/section";
 import { ProductGrid } from "@/components/ui/product-grid";
-import { ContentBlock } from "@/components/ui/content-block";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -29,16 +32,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     throw error;
   }
   if (!product) return {};
-  const title =
-    pick(locale, product.seoTitleAr, product.seoTitleEn) ||
-    pick(locale, product.nameAr, product.nameEn);
-  const description =
-    pick(locale, product.seoDescriptionAr, product.seoDescriptionEn) ||
-    pick(locale, product.descriptionAr, product.descriptionEn);
+  const name = pick(locale, product.nameAr, product.nameEn);
+  const description = productMetaDescription(
+    locale,
+    name,
+    pick(locale, product.descriptionAr, product.descriptionEn),
+  );
   return buildPublicMetadata({
     locale,
-    title,
-    description: description || undefined,
+    title: entityTitle(locale, name),
+    description,
     pathAr: `/product/${product.slugAr}`,
     pathEn: `/product/${product.slugEn}`,
     images: product.images.map((i) => i.url),
@@ -112,13 +115,6 @@ export default async function ProductPage({ params }: PageProps) {
           <p className="whitespace-pre-line leading-relaxed text-taupe">{description}</p>
         </section>
       )}
-
-      <ContentBlock
-        ar={product.aeoSummaryAr}
-        en={product.aeoSummaryEn}
-        locale={locale as Locale}
-        title={tp("questionsTitle")}
-      />
 
       {related.length > 0 && (
         <Section title={tp("relatedTitle")}>

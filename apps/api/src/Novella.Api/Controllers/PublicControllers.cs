@@ -80,13 +80,4 @@ public sealed class PublicSeoController : ControllerBase
 
     [HttpGet("sitemap-data")]
     public async Task<IActionResult> Sitemap(CancellationToken ct) => Ok(await _seo.GetSitemapDataAsync(ct));
-
-    [HttpGet("product/{slug}")]
-    public async Task<IActionResult> Product(string slug, CancellationToken ct) => Ok(await _seo.GetProductSeoAsync(slug, ct));
-
-    [HttpGet("category/{slug}")]
-    public async Task<IActionResult> Category(string slug, CancellationToken ct) => Ok(await _seo.GetCategorySeoAsync(slug, ct));
-
-    [HttpGet("page/{slug}")]
-    public async Task<IActionResult> Page(string slug, CancellationToken ct) => Ok(await _seo.GetPageSeoAsync(slug, ct));
 }

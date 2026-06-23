@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Novella.Application.Catalog;
 using Novella.Application.Common;
 using Novella.Application.Content;
-using Novella.Application.Seo;
 
 namespace Novella.Api.Controllers;
 
@@ -34,15 +33,4 @@ public sealed class AdminPagesController : ControllerBase
     [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => Ok(await _content.GetPagesAsync(ct));
     [HttpGet("{id:guid}")] public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await _content.GetPageByIdAsync(id, ct));
     [HttpPut("{id:guid}")] public async Task<IActionResult> Update(Guid id, [FromBody] StaticPageUpdateRequest req, CancellationToken ct) => Ok(await _content.UpdatePageAsync(id, req, ct));
-}
-
-[ApiController]
-[Authorize(Policy = "Admin")]
-[Route("api/admin/seo")]
-public sealed class AdminSeoController : ControllerBase
-{
-    private readonly SeoService _seo;
-    public AdminSeoController(SeoService seo) => _seo = seo;
-
-    [HttpGet("content")] public async Task<IActionResult> Content(CancellationToken ct) => Ok(await _seo.GetAdminContentAsync(ct));
 }

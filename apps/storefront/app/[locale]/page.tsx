@@ -17,13 +17,9 @@ type PageProps = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "home" });
-  const title =
-    pick(locale, BRAND.defaultSeoTitleAr, BRAND.defaultSeoTitleEn) ||
-    pick(locale, BRAND.nameAr, BRAND.nameEn) ||
-    "Novella";
+  const title = pick(locale, BRAND.nameAr, BRAND.nameEn) || "Novella";
   const description =
-    pick(locale, BRAND.defaultSeoDescriptionAr, BRAND.defaultSeoDescriptionEn) ||
-    t("brandStoryBody");
+    pick(locale, BRAND.taglineAr, BRAND.taglineEn) || t("brandStoryBody");
   return buildPublicMetadata({
     locale,
     title,

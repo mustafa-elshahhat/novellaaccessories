@@ -52,9 +52,7 @@ public static class CatalogProjection
             p.Id, p.CategoryId, p.NameAr, p.NameEn, p.SlugAr, p.SlugEn, p.DescriptionAr, p.DescriptionEn,
             original, final, hasDiscount,
             hasDiscount ? p.ProductDiscountPercentage : null,
-            ProductAvailable(p), p.IsFeatured, images, variants,
-            p.SeoTitleAr, p.SeoTitleEn, p.SeoDescriptionAr, p.SeoDescriptionEn,
-            p.AeoSummaryAr, p.AeoSummaryEn, p.GeoContentAr, p.GeoContentEn);
+            ProductAvailable(p), p.IsFeatured, images, variants);
     }
 
     public static PublicProductListItemDto MapListItem(Product p, DateTime nowUtc)

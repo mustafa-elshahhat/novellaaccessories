@@ -11,20 +11,20 @@ export type ReorderRequest = { items: { id: Id; sortOrder: number }[] };
 export type ImageDto = { id: Id; url: string; altAr?: string | null; altEn?: string | null; sortOrder: number; isPrimary: boolean };
 export type UploadedImageDto = { url: string; publicId: string };
 
+// Slugs are system-owned read-only identifiers (shown for reference, never edited in admin).
+// SEO/AEO/GEO are generated automatically by the storefront and are not part of the admin model.
 export type Category = {
-  id: Id; nameAr: string; nameEn: string; slugAr: string; slugEn: string; imageUrl?: string | null; imagePublicId?: string | null;
+  id: Id; nameAr: string; nameEn: string; slugAr: string; slugEn: string;
+  descriptionAr?: string | null; descriptionEn?: string | null;
+  imageUrl?: string | null; imagePublicId?: string | null;
   imageAltAr?: string | null; imageAltEn?: string | null;
   sortOrder: number; isActive: boolean; productCount: number;
-  seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null;
-  aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null;
 };
 
 export type Product = {
   id: Id; categoryId: Id; nameAr: string; nameEn: string; slugAr: string; slugEn: string; descriptionAr?: string | null; descriptionEn?: string | null;
   basePurchasePrice: number; baseSellingPrice: number; productDiscountPercentage?: number | null; productDiscountStartAt?: string | null; productDiscountEndAt?: string | null;
   isFeatured: boolean; isActive: boolean; variants: Variant[]; images: ImageDto[];
-  seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null;
-  aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null;
 };
 
 export type Variant = {
@@ -65,8 +65,7 @@ export type ProfitReport = { productRevenueAfterDiscounts: number; productPurcha
 export type RowReport = Record<string, string | number | null>;
 export type AnalyticsReport = { sessions: number; uniqueVisitors: number; checkoutStartedSessions: number; orderPlacedSessions: number; deliveredVisitors: number; visitToOrderConversion: number; checkoutToOrderConversion: number; orderToDeliveredConversion: number; productViews?: number; addToCartEvents?: number; trafficSources?: RowReport[]; deviceTypes?: RowReport[]; languages?: RowReport[] };
 
-export type StaticPage = { id: Id; key: string; titleAr: string; titleEn: string; slugAr: string; slugEn: string; contentAr: string; contentEn: string; seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null; aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null; isActive: boolean };
-export type SeoMetadata = { entityType: string; entityId: Id; slugAr: string; slugEn: string; seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null; aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null };
+export type StaticPage = { id: Id; key: string; titleAr: string; titleEn: string; slugAr: string; slugEn: string; contentAr: string; contentEn: string; isActive: boolean };
 export type ReminderSettings = { abandonedCheckoutEnabled: boolean; abandonedCheckoutDelayHours: number; inactiveCustomerEnabled: boolean; inactiveCustomerDelayDays: number };
 export type ShippingSettings = { freeShippingThreshold?: number | null; isFreeShippingEnabled: boolean };
 export type DashboardSummary = { todayOrders: number; todayRevenue: number; deliveredOrdersThisMonth: number; pendingOrders: number; lowStockVariants: number; failedWhatsAppMessages: number; conversionRateThisMonth: number; netProfitThisMonth: number };

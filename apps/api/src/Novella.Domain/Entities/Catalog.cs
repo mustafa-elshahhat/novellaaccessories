@@ -2,7 +2,11 @@ using Novella.Domain.Enums;
 
 namespace Novella.Domain.Entities;
 
-/// <summary>Product category with bilingual content and SEO/AEO/GEO metadata.</summary>
+/// <summary>
+/// Product category with bilingual customer-facing content. Slugs are system-owned technical
+/// URL identifiers (generated on creation, stable thereafter). SEO/AEO/GEO metadata is generated
+/// automatically by the storefront from this normal business content — never stored as editable fields.
+/// </summary>
 public class Category
 {
     public Guid Id { get; set; }
@@ -10,21 +14,14 @@ public class Category
     public string NameEn { get; set; } = string.Empty;
     public string SlugAr { get; set; } = string.Empty;
     public string SlugEn { get; set; } = string.Empty;
+    public string? DescriptionAr { get; set; }
+    public string? DescriptionEn { get; set; }
     public string? ImageUrl { get; set; }
     public string? ImagePublicId { get; set; }
     public string? ImageAltAr { get; set; }
     public string? ImageAltEn { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
-
-    public string? SeoTitleAr { get; set; }
-    public string? SeoTitleEn { get; set; }
-    public string? SeoDescriptionAr { get; set; }
-    public string? SeoDescriptionEn { get; set; }
-    public string? AeoSummaryAr { get; set; }
-    public string? AeoSummaryEn { get; set; }
-    public string? GeoContentAr { get; set; }
-    public string? GeoContentEn { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -58,15 +55,6 @@ public class Product
 
     public bool IsFeatured { get; set; }
     public bool IsActive { get; set; } = true;
-
-    public string? SeoTitleAr { get; set; }
-    public string? SeoTitleEn { get; set; }
-    public string? SeoDescriptionAr { get; set; }
-    public string? SeoDescriptionEn { get; set; }
-    public string? AeoSummaryAr { get; set; }
-    public string? AeoSummaryEn { get; set; }
-    public string? GeoContentAr { get; set; }
-    public string? GeoContentEn { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

@@ -6,14 +6,17 @@ import type { Locale } from "@/lib/i18n/routing";
 import { getCategory, getCategoryProducts } from "@/lib/api/public";
 import type { PublicCategory } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/errors";
-import { buildPublicMetadata } from "@/lib/seo/metadata";
+import {
+  buildPublicMetadata,
+  absoluteUrl,
+  entityTitle,
+  categoryMetaDescription,
+} from "@/lib/seo/metadata";
 import { JsonLd, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo/jsonld";
-import { absoluteUrl } from "@/lib/seo/metadata";
 import { ProductGrid } from "@/components/ui/product-grid";
 import { Pagination } from "@/components/ui/pagination";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { EmptyState } from "@/components/ui/states";
-import { ContentBlock } from "@/components/ui/content-block";
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -35,14 +38,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     throw error;
   }
   if (!category) return {};
-  const title =
-    pick(locale, category.seoTitleAr, category.seoTitleEn) ||
-    pick(locale, category.nameAr, category.nameEn);
-  const description = pick(locale, category.seoDescriptionAr, category.seoDescriptionEn);
+  const name = pick(locale, category.nameAr, category.nameEn);
+  const description = categoryMetaDescription(
+    locale,
+    name,
+    pick(locale, category.descriptionAr, category.descriptionEn),
+  );
   return buildPublicMetadata({
     locale,
-    title,
-    description: description || undefined,
+    title: entityTitle(locale, name),
+    description,
     pathAr: `/category/${category.slugAr}`,
     pathEn: `/category/${category.slugEn}`,
     images: category.imageUrl ? [category.imageUrl] : undefined,
@@ -70,6 +75,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const localizedSlug = pickSlug(locale as Locale, category.slugAr, category.slugEn);
   const name = pick(locale as Locale, category.nameAr, category.nameEn);
+  const description = pick(locale as Locale, category.descriptionAr, category.descriptionEn);
 
   const result = await getCategoryProducts(localizedSlug, { page, pageSize: 20 });
   const products = result.items;
@@ -87,7 +93,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         data={collectionJsonLd({
           name,
           url: absoluteUrl(`/${locale}/category/${localizedSlug}`),
-          description: pick(locale, category.seoDescriptionAr, category.seoDescriptionEn),
+          description: categoryMetaDescription(locale, name, description),
         })}
       />
       <Breadcrumb
@@ -99,6 +105,12 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         ]}
       />
       <h1 className="mb-6 text-2xl font-semibold text-deepbrown">{name}</h1>
+
+      {description && (
+        <p className="mx-auto mb-6 max-w-3xl whitespace-pre-line leading-relaxed text-taupe">
+          {description}
+        </p>
+      )}
 
       {products.length === 0 ? (
         <EmptyState title={tCat("empty") || te("noProducts")} />
@@ -112,12 +124,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           />
         </>
       )}
-
-      <ContentBlock
-        ar={category.seoDescriptionAr}
-        en={category.seoDescriptionEn}
-        locale={locale as Locale}
-      />
     </div>
   );
 }

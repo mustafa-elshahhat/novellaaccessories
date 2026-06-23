@@ -33,6 +33,31 @@ public class HttpMiddlewareTests
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
     }
 
+    [Theory]
+    [InlineData("/api/public/seo/product/any-slug")]
+    [InlineData("/api/public/seo/category/any-slug")]
+    [InlineData("/api/public/seo/page/any-slug")]
+    public async Task Removed_public_entity_seo_endpoints_return_not_found(string path)
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(path);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Removed_admin_seo_endpoint_returns_not_found()
+    {
+        await using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/admin/seo/content");
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
     private sealed class ApiFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)

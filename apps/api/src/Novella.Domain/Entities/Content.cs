@@ -32,15 +32,6 @@ public class StaticPage
     public string ContentAr { get; set; } = string.Empty;
     public string ContentEn { get; set; } = string.Empty;
 
-    public string? SeoTitleAr { get; set; }
-    public string? SeoTitleEn { get; set; }
-    public string? SeoDescriptionAr { get; set; }
-    public string? SeoDescriptionEn { get; set; }
-    public string? AeoSummaryAr { get; set; }
-    public string? AeoSummaryEn { get; set; }
-    public string? GeoContentAr { get; set; }
-    public string? GeoContentEn { get; set; }
-
     public bool IsActive { get; set; } = true;
     public DateTime? UpdatedAt { get; set; }
 }

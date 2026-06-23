@@ -108,14 +108,9 @@ public sealed class ContentService
     public async Task<StaticPageDto> UpdatePageAsync(Guid id, StaticPageUpdateRequest req, CancellationToken ct)
     {
         var p = await _db.StaticPages.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Page not found.");
+        // The fixed key and generated slugs are immutable application concerns and are never changed here.
         p.TitleAr = req.TitleAr; p.TitleEn = req.TitleEn;
-        p.SlugAr = await UniqueSlug(Slug.Ensure(p.SlugAr, req.TitleAr), true, id, ct);
-        p.SlugEn = await UniqueSlug(Slug.Ensure(p.SlugEn, req.TitleEn), false, id, ct);
         p.ContentAr = req.ContentAr; p.ContentEn = req.ContentEn;
-        p.SeoTitleAr = req.SeoTitleAr; p.SeoTitleEn = req.SeoTitleEn;
-        p.SeoDescriptionAr = req.SeoDescriptionAr; p.SeoDescriptionEn = req.SeoDescriptionEn;
-        p.AeoSummaryAr = req.AeoSummaryAr; p.AeoSummaryEn = req.AeoSummaryEn;
-        p.GeoContentAr = req.GeoContentAr; p.GeoContentEn = req.GeoContentEn;
         p.IsActive = req.IsActive; p.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
         return MapPage(p);
@@ -131,20 +126,10 @@ public sealed class ContentService
         return new HomeDto(heroes, categories, featured);
     }
 
-    private async Task<string> UniqueSlug(string baseSlug, bool arabic, Guid excludeId, CancellationToken ct)
-    {
-        var slug = baseSlug; var i = 1;
-        while (await _db.StaticPages.AnyAsync(p => (arabic ? p.SlugAr : p.SlugEn) == slug && p.Id != excludeId, ct))
-            slug = $"{baseSlug}-{++i}";
-        return slug;
-    }
-
     private static HeroDto MapHero(HeroSection h) => new(
         h.Id, h.ImageUrl, h.ImagePublicId, h.TitleAr, h.TitleEn, h.SubtitleAr, h.SubtitleEn,
         h.CtaTextAr, h.CtaTextEn, h.CtaLink, h.LinkedProductId, h.IsActive, h.SortOrder);
 
     private static StaticPageDto MapPage(StaticPage p) => new(
-        p.Id, p.Key, p.TitleAr, p.TitleEn, p.SlugAr, p.SlugEn, p.ContentAr, p.ContentEn,
-        p.SeoTitleAr, p.SeoTitleEn, p.SeoDescriptionAr, p.SeoDescriptionEn,
-        p.AeoSummaryAr, p.AeoSummaryEn, p.GeoContentAr, p.GeoContentEn, p.IsActive);
+        p.Id, p.Key, p.TitleAr, p.TitleEn, p.SlugAr, p.SlugEn, p.ContentAr, p.ContentEn, p.IsActive);
 }

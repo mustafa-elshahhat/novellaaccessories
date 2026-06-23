@@ -1,24 +1,8 @@
 import "server-only";
 import { tryApiFetch } from "./server";
-import type { SitemapData, ProductSeo, SeoMetadata } from "./types";
+import type { SitemapData } from "./types";
 
-// SEO reads are graceful (null on failure) so metadata generation never breaks a page.
+// Sitemap data is the only backend SEO read. Per-entity metadata (title/description/canonical/
+// hreflang/JSON-LD) is generated automatically from the normal Product, Category, and Page APIs.
 export const getSitemapData = () =>
   tryApiFetch<SitemapData>("/api/public/seo/sitemap-data", { revalidate: 300 });
-
-export const getProductSeo = (slug: string) =>
-  tryApiFetch<ProductSeo>(
-    `/api/public/seo/product/${encodeURIComponent(slug)}`,
-    { revalidate: 300 },
-  );
-
-export const getCategorySeo = (slug: string) =>
-  tryApiFetch<SeoMetadata>(
-    `/api/public/seo/category/${encodeURIComponent(slug)}`,
-    { revalidate: 300 },
-  );
-
-export const getPageSeo = (slug: string) =>
-  tryApiFetch<SeoMetadata>(`/api/public/seo/page/${encodeURIComponent(slug)}`, {
-    revalidate: 300,
-  });
