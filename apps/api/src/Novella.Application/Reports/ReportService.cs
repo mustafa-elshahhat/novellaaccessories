@@ -133,10 +133,14 @@ public sealed class ReportService
         var rows = await _db.OrderItems.AsNoTracking()
             .Where(i => i.Order!.Status == OrderStatus.Delivered && i.Order.DeliveredAt >= w.FromUtc && i.Order.DeliveredAt < w.ToUtc)
             .GroupBy(i => new { i.ProductId, i.ProductNameEn })
-            .Select(g => new ProductReportRowDto(g.Key.ProductId, g.Key.ProductNameEn,
-                g.Sum(x => x.Quantity), g.Sum(x => x.LineRevenue), g.Sum(x => x.LineGrossProfit)))
+            .Select(g => new {
+                g.Key.ProductId, g.Key.ProductNameEn,
+                Quantity = g.Sum(x => (int?)x.Quantity) ?? 0,
+                Revenue = g.Sum(x => (decimal?)x.LineRevenue) ?? 0m,
+                GrossProfit = g.Sum(x => (decimal?)x.LineGrossProfit) ?? 0m
+            })
             .OrderByDescending(r => r.Revenue).ToListAsync(ct);
-        return rows;
+        return rows.Select(r => new ProductReportRowDto(r.ProductId, r.ProductNameEn, r.Quantity, r.Revenue, r.GrossProfit)).ToList();
     }
 
     public async Task<IReadOnlyList<CategoryReportRowDto>> CategoriesAsync(DateWindow w, CancellationToken ct)
@@ -146,17 +150,29 @@ public sealed class ReportService
                     join c in _db.Categories.AsNoTracking() on p.CategoryId equals c.Id
                     where i.Order!.Status == OrderStatus.Delivered && i.Order.DeliveredAt >= w.FromUtc && i.Order.DeliveredAt < w.ToUtc
                     group new { i, c } by new { c.Id, c.NameEn } into g
-                    select new CategoryReportRowDto(g.Key.Id, g.Key.NameEn,
-                        g.Sum(x => x.i.Quantity), g.Sum(x => x.i.LineRevenue), g.Sum(x => x.i.LineGrossProfit));
-        return await query.OrderByDescending(r => r.Revenue).ToListAsync(ct);
+                    select new {
+                        g.Key.Id, g.Key.NameEn,
+                        Quantity = g.Sum(x => (int?)x.i.Quantity) ?? 0,
+                        Revenue = g.Sum(x => (decimal?)x.i.LineRevenue) ?? 0m,
+                        GrossProfit = g.Sum(x => (decimal?)x.i.LineGrossProfit) ?? 0m
+                    };
+        var rows = await query.OrderByDescending(r => r.Revenue).ToListAsync(ct);
+        return rows.Select(r => new CategoryReportRowDto(r.Id, r.NameEn, r.Quantity, r.Revenue, r.GrossProfit)).ToList();
     }
 
     public async Task<IReadOnlyList<CouponReportRowDto>> CouponsAsync(DateWindow w, CancellationToken ct)
-        => await _db.CouponUsages.AsNoTracking()
+    {
+        var rows = await _db.CouponUsages.AsNoTracking()
             .Where(u => u.UsedAt >= w.FromUtc && u.UsedAt < w.ToUtc)
             .GroupBy(u => new { u.CouponId, u.Coupon!.Code })
-            .Select(g => new CouponReportRowDto(g.Key.CouponId, g.Key.Code, g.Count(), g.Sum(x => x.DiscountAmount)))
+            .Select(g => new {
+                g.Key.CouponId, g.Key.Code,
+                TimesUsed = g.Count(),
+                TotalDiscount = g.Sum(x => (decimal?)x.DiscountAmount) ?? 0m
+            })
             .OrderByDescending(r => r.TimesUsed).ToListAsync(ct);
+        return rows.Select(r => new CouponReportRowDto(r.CouponId, r.Code, r.TimesUsed, r.TotalDiscount)).ToList();
+    }
 
     public async Task<IReadOnlyList<PaymentReportRowDto>> PaymentsAsync(DateWindow w, CancellationToken ct)
         => await _db.Orders.AsNoTracking()
@@ -169,12 +185,20 @@ public sealed class ReportService
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<GovernorateReportRowDto>> GovernoratesAsync(DateWindow w, CancellationToken ct)
-        => await _db.Orders.AsNoTracking()
+    {
+        var rows = await _db.Orders.AsNoTracking()
             .Where(o => o.Status == OrderStatus.Delivered && o.DeliveredAt >= w.FromUtc && o.DeliveredAt < w.ToUtc)
             .GroupBy(o => o.GovernorateNameEn)
-            .Select(g => new GovernorateReportRowDto(g.Key, g.Count(),
-                g.Sum(o => o.CustomerPaidShippingFee), g.Sum(o => o.ActualShippingCost), g.Sum(o => o.ShippingMargin)))
+            .Select(g => new {
+                GovernorateNameEn = g.Key,
+                Orders = g.Count(),
+                ShippingCollected = g.Sum(o => (decimal?)o.CustomerPaidShippingFee) ?? 0m,
+                ActualShippingCost = g.Sum(o => (decimal?)o.ActualShippingCost) ?? 0m,
+                ShippingMargin = g.Sum(o => (decimal?)o.ShippingMargin) ?? 0m
+            })
             .OrderByDescending(r => r.ShippingMargin).ToListAsync(ct);
+        return rows.Select(r => new GovernorateReportRowDto(r.GovernorateNameEn, r.Orders, r.ShippingCollected, r.ActualShippingCost, r.ShippingMargin)).ToList();
+    }
 
     public async Task<IReadOnlyList<ExpenseReportRowDto>> ExpensesAsync(DateWindow w, CancellationToken ct)
     {
@@ -210,17 +234,19 @@ public sealed class ReportService
 
         async Task<IReadOnlyList<AnalyticsBreakdownRowDto>> BreakdownAsync(string field)
         {
-            IQueryable<IGrouping<string, AnalyticsSession>> grouped = field switch
+            IQueryable<string> values = field switch
             {
-                "medium" => sessions.Where(s => s.UtmMedium != null).GroupBy(s => s.UtmMedium!),
-                "campaign" => sessions.Where(s => s.UtmCampaign != null).GroupBy(s => s.UtmCampaign!),
-                "referrer" => sessions.Where(s => s.Referrer != null).GroupBy(s => s.Referrer!),
-                "device" => sessions.Where(s => s.DeviceType != null).GroupBy(s => s.DeviceType!),
-                "language" => sessions.Where(s => s.Language != null).GroupBy(s => s.Language!),
-                _ => sessions.Where(s => s.UtmSource != null).GroupBy(s => s.UtmSource!)
+                "medium" => sessions.Where(s => s.UtmMedium != null).Select(s => s.UtmMedium!),
+                "campaign" => sessions.Where(s => s.UtmCampaign != null).Select(s => s.UtmCampaign!),
+                "referrer" => sessions.Where(s => s.Referrer != null).Select(s => s.Referrer!),
+                "device" => sessions.Where(s => s.DeviceType != null).Select(s => s.DeviceType!),
+                "language" => sessions.Where(s => s.Language != null).Select(s => s.Language!),
+                _ => sessions.Where(s => s.UtmSource != null).Select(s => s.UtmSource!)
             };
-            return await grouped.Select(g => new AnalyticsBreakdownRowDto(g.Key, g.Count()))
+            var rows = await values.GroupBy(v => v)
+                .Select(g => new { Label = g.Key, Count = g.Count() })
                 .OrderByDescending(r => r.Count).Take(20).ToListAsync(ct);
+            return rows.Select(r => new AnalyticsBreakdownRowDto(r.Label, r.Count)).ToList();
         }
 
         return new AnalyticsReportDto(totalSessions, uniqueVisitors, checkoutSessions, orderSessions, deliveredVisitors,
