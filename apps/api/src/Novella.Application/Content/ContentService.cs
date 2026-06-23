@@ -6,7 +6,7 @@ using Novella.Domain.Entities;
 
 namespace Novella.Application.Content;
 
-/// <summary>Site settings, hero slides, static pages, and the composed storefront home payload.</summary>
+/// <summary>Hero slides, static pages, and the composed storefront home payload.</summary>
 public sealed class ContentService
 {
     private readonly IAppDbContext _db;
@@ -18,32 +18,6 @@ public sealed class ContentService
         _db = db;
         _clock = clock;
         _catalog = catalog;
-    }
-
-    // ---------- Site settings ----------
-
-    public async Task<SiteSettingsDto> GetSiteSettingsAsync(CancellationToken ct)
-    {
-        var s = await _db.SiteSettings.AsNoTracking().FirstOrDefaultAsync(ct)
-            ?? new SiteSettings { SiteNameAr = "نوفيلا", SiteNameEn = "Novella Accessories", Domain = "novellaaccessories.store" };
-        return Map(s);
-    }
-
-    public async Task<SiteSettingsDto> UpdateSiteSettingsAsync(SiteSettingsDto req, CancellationToken ct)
-    {
-        var s = await _db.SiteSettings.FirstOrDefaultAsync(ct);
-        if (s is null)
-        {
-            s = new SiteSettings { Id = Guid.NewGuid() };
-            _db.SiteSettings.Add(s);
-        }
-        s.SiteNameAr = req.SiteNameAr; s.SiteNameEn = req.SiteNameEn; s.Domain = req.Domain;
-        s.DefaultSeoTitleAr = req.DefaultSeoTitleAr; s.DefaultSeoTitleEn = req.DefaultSeoTitleEn;
-        s.DefaultSeoDescriptionAr = req.DefaultSeoDescriptionAr; s.DefaultSeoDescriptionEn = req.DefaultSeoDescriptionEn;
-        s.FreeShippingThreshold = req.FreeShippingThreshold; s.IsFreeShippingEnabled = req.IsFreeShippingEnabled;
-        s.UpdatedAt = _clock.UtcNow;
-        await _db.SaveChangesAsync(ct);
-        return Map(s);
     }
 
     // ---------- Hero ----------
@@ -135,8 +109,8 @@ public sealed class ContentService
     {
         var p = await _db.StaticPages.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Page not found.");
         p.TitleAr = req.TitleAr; p.TitleEn = req.TitleEn;
-        p.SlugAr = await UniqueSlug(Slug.Ensure(req.SlugAr, req.TitleAr), true, id, ct);
-        p.SlugEn = await UniqueSlug(Slug.Ensure(req.SlugEn, req.TitleEn), false, id, ct);
+        p.SlugAr = await UniqueSlug(Slug.Ensure(p.SlugAr, req.TitleAr), true, id, ct);
+        p.SlugEn = await UniqueSlug(Slug.Ensure(p.SlugEn, req.TitleEn), false, id, ct);
         p.ContentAr = req.ContentAr; p.ContentEn = req.ContentEn;
         p.SeoTitleAr = req.SeoTitleAr; p.SeoTitleEn = req.SeoTitleEn;
         p.SeoDescriptionAr = req.SeoDescriptionAr; p.SeoDescriptionEn = req.SeoDescriptionEn;
@@ -151,11 +125,10 @@ public sealed class ContentService
 
     public async Task<HomeDto> GetHomeAsync(CancellationToken ct)
     {
-        var settings = await GetSiteSettingsAsync(ct);
         var heroes = await GetHeroesAsync(activeOnly: true, ct);
         var categories = await _catalog.GetCategoriesAsync(ct);
         var featured = await _catalog.GetFeaturedAsync(ct);
-        return new HomeDto(settings, heroes, categories, featured);
+        return new HomeDto(heroes, categories, featured);
     }
 
     private async Task<string> UniqueSlug(string baseSlug, bool arabic, Guid excludeId, CancellationToken ct)
@@ -165,10 +138,6 @@ public sealed class ContentService
             slug = $"{baseSlug}-{++i}";
         return slug;
     }
-
-    private static SiteSettingsDto Map(SiteSettings s) => new(
-        s.SiteNameAr, s.SiteNameEn, s.Domain, s.DefaultSeoTitleAr, s.DefaultSeoTitleEn,
-        s.DefaultSeoDescriptionAr, s.DefaultSeoDescriptionEn, s.FreeShippingThreshold, s.IsFreeShippingEnabled);
 
     private static HeroDto MapHero(HeroSection h) => new(
         h.Id, h.ImageUrl, h.ImagePublicId, h.TitleAr, h.TitleEn, h.SubtitleAr, h.SubtitleEn,

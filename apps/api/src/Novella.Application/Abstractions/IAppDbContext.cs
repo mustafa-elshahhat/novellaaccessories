@@ -36,7 +36,7 @@ public interface IAppDbContext
 
     DbSet<HeroSection> HeroSections { get; }
     DbSet<StaticPage> StaticPages { get; }
-    DbSet<SiteSettings> SiteSettings { get; }
+    DbSet<ShippingSettings> ShippingSettings { get; }
 
     DbSet<WhatsAppSettings> WhatsAppSettings { get; }
     DbSet<WhatsAppMessageLog> WhatsAppMessageLogs { get; }

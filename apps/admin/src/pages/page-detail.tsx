@@ -1,1 +1,1 @@
-export { PageDetailPage as default } from "@/features/admin-pages";
+export { CanonicalPageDetailPage as default } from "@/features/admin-pages";

@@ -3,7 +3,6 @@ import { apiFetch } from "./server";
 import { buildProductListQuery } from "./query";
 import type {
   Home,
-  SiteSettings,
   Hero,
   PublicCategory,
   PublicProduct,
@@ -19,11 +18,6 @@ const CONTENT_REVALIDATE = 300;
 
 export const getHome = () =>
   apiFetch<Home>("/api/public/home", { revalidate: CATALOG_REVALIDATE });
-
-export const getSiteSettings = () =>
-  apiFetch<SiteSettings>("/api/public/site-settings", {
-    revalidate: CONTENT_REVALIDATE,
-  });
 
 export const getHeroes = () =>
   apiFetch<Hero[]>("/api/public/hero", { revalidate: CATALOG_REVALIDATE });

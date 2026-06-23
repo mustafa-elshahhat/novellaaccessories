@@ -51,7 +51,7 @@ public sealed class DataSeeder
         await SeedStaticPagesAsync(now, ct);
         await UpgradeStaticPagesAsync(now, ct);
         await SeedGovernoratesAsync(now, ct);
-        await SeedSiteSettingsAsync(now, ct);
+        await SeedShippingSettingsAsync(now, ct);
         await SeedWhatsAppSettingsAsync(now, ct);
         await SeedReminderSettingsAsync(now, ct);
         await SeedTwoOrderSettingsAsync(now, ct);
@@ -534,19 +534,12 @@ public sealed class DataSeeder
         }
     }
 
-    private async Task SeedSiteSettingsAsync(DateTime now, CancellationToken ct)
+    private async Task SeedShippingSettingsAsync(DateTime now, CancellationToken ct)
     {
-        if (await _db.SiteSettings.AnyAsync(ct)) return;
-        _db.SiteSettings.Add(new SiteSettings
+        if (await _db.ShippingSettings.AnyAsync(ct)) return;
+        _db.ShippingSettings.Add(new ShippingSettings
         {
             Id = Guid.NewGuid(),
-            SiteNameAr = "نوفيلا أكسسوارات",
-            SiteNameEn = "Novella Accessories",
-            Domain = "novellaaccessories.store",
-            DefaultSeoTitleAr = "نوفيلا أكسسوارات",
-            DefaultSeoTitleEn = "Novella Accessories",
-            DefaultSeoDescriptionAr = "إكسسوارات أنيقة بجودة عالية.",
-            DefaultSeoDescriptionEn = "Elegant, high-quality accessories.",
             IsFreeShippingEnabled = false,
             UpdatedAt = now
         });

@@ -32,8 +32,13 @@ public sealed class AdminCustomerQuery : PageQuery
 public sealed class CustomerAdminService
 {
     private readonly IAppDbContext _db;
+    private readonly IClock _clock;
 
-    public CustomerAdminService(IAppDbContext db) => _db = db;
+    public CustomerAdminService(IAppDbContext db, IClock clock)
+    {
+        _db = db;
+        _clock = clock;
+    }
 
     public async Task<PagedResult<AdminCustomerListItemDto>> ListAsync(AdminCustomerQuery query, CancellationToken ct)
     {
@@ -93,5 +98,15 @@ public sealed class CustomerAdminService
         return new AdminCustomerDetailDto(c.Id, c.FullName, c.PhoneNumber, c.IsPhoneVerified, c.IsActive,
             orders.Count, orders.Count(o => o.Status == OrderStatus.Delivered), c.LastVisitAt, orders.FirstOrDefault()?.CreatedAt, c.CreatedAt,
             orders, coupons, reminders, messages, new { sessions, lastSession });
+    }
+
+    public async Task<AdminCustomerDetailDto> SetStatusAsync(Guid id, bool isActive, CancellationToken ct)
+    {
+        var customer = await _db.Customers.FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw AppException.NotFound("Customer not found.");
+        customer.IsActive = isActive;
+        customer.UpdatedAt = _clock.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return await GetAsync(id, ct);
     }
 }

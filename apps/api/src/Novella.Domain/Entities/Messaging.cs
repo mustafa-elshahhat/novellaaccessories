@@ -11,9 +11,6 @@ public class WhatsAppSettings
     public Guid Id { get; set; }
     public bool IsEnabled { get; set; }
     public string TransportName { get; set; } = "BaileysWhatsAppWeb";
-    public string? ServiceBaseUrl { get; set; }
-    public string? OtpTemplate { get; set; }
-    public string? OrderConfirmationTemplate { get; set; }
     public string? TwoOrderCouponTemplate { get; set; }
     public string? AbandonedCheckoutTemplate { get; set; }
     public string? InactiveCustomerTemplate { get; set; }

@@ -20,6 +20,15 @@ public class ShippingGovernorate
     public DateTime? UpdatedAt { get; set; }
 }
 
+/// <summary>Singleton shipping business settings.</summary>
+public class ShippingSettings
+{
+    public Guid Id { get; set; }
+    public decimal? FreeShippingThreshold { get; set; }
+    public bool IsFreeShippingEnabled { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 /// <summary>A payment transaction tied to an order (COD active; gateways prepared).</summary>
 public class PaymentTransaction
 {

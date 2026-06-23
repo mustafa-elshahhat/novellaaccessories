@@ -10,6 +10,15 @@ export const PAGE_SLUGS = {
 
 export type PageSlug = (typeof PAGE_SLUGS)[keyof typeof PAGE_SLUGS];
 
+export const BRAND = {
+  nameAr: "نوفيلا أكسسوارات",
+  nameEn: "Novella Accessories",
+  defaultSeoTitleAr: "نوفيلا أكسسوارات",
+  defaultSeoTitleEn: "Novella Accessories",
+  defaultSeoDescriptionAr: "إكسسوارات أنيقة بجودة عالية.",
+  defaultSeoDescriptionEn: "Elegant, high-quality accessories.",
+} as const;
+
 /** Routes that must never be indexed (transactional / auth / account). */
 export const NOINDEX_PREFIXES = [
   "/cart",

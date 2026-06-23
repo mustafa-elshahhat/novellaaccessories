@@ -16,6 +16,9 @@ public sealed class WhatsAppClient : IWhatsAppClient
 {
     public const string SendMessagePath = "/send-message";
     public const string StatusPath = "/status";
+    public const string QrPath = "/qr";
+    public const string HealthPath = "/health";
+    public const string LogoutPath = "/api/logout";
     public const string InternalApiKeyHeader = "x-internal-api-key";
 
     private readonly HttpClient _http;
@@ -103,6 +106,39 @@ public sealed class WhatsAppClient : IWhatsAppClient
         }
     }
 
+    public Task<WhatsAppProxyResult> GetQrAsync(CancellationToken ct = default)
+        => SendProxyAsync(HttpMethod.Get, QrPath, true, ct);
+
+    public Task<WhatsAppProxyResult> GetHealthAsync(CancellationToken ct = default)
+        => SendProxyAsync(HttpMethod.Get, HealthPath, false, ct);
+
+    public Task<WhatsAppProxyResult> LogoutAsync(CancellationToken ct = default)
+        => SendProxyAsync(HttpMethod.Post, LogoutPath, true, ct);
+
+    private async Task<WhatsAppProxyResult> SendProxyAsync(HttpMethod method, string path, bool requireKey, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(_options.BaseUrl) || (requireKey && string.IsNullOrWhiteSpace(_options.InternalApiKey)))
+            return new WhatsAppProxyResult(false, null, "whatsapp_not_configured");
+
+        try
+        {
+            using var request = new HttpRequestMessage(method, BuildUri(path));
+            if (requireKey)
+                request.Headers.TryAddWithoutValidation(InternalApiKeyHeader, _options.InternalApiKey);
+
+            using var response = await _http.SendAsync(request, ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+            if (response.IsSuccessStatusCode)
+                return new WhatsAppProxyResult(true, string.IsNullOrWhiteSpace(body) ? "{}" : body, null);
+            return new WhatsAppProxyResult(true, string.IsNullOrWhiteSpace(body) ? null : body, $"proxy_{(int)response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "WhatsApp proxy transport error for {Path}", path);
+            return new WhatsAppProxyResult(false, null, "transport_error");
+        }
+    }
+
     private Uri BuildUri(string path) => new(new Uri(_options.BaseUrl.TrimEnd('/') + "/"), path.TrimStart('/'));
 
     private static (bool success, string? providerId) TryReadSuccess(string body)
@@ -112,6 +148,7 @@ public sealed class WhatsAppClient : IWhatsAppClient
             using var doc = JsonDocument.Parse(body);
             var root = doc.RootElement;
             var providerId = root.TryGetProperty("messageId", out var m) ? m.GetString()
+                : root.TryGetProperty("providerMessageId", out var p) ? p.GetString()
                 : root.TryGetProperty("id", out var id) ? id.GetString() : null;
             return (true, providerId);
         }

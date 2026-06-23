@@ -45,19 +45,4 @@ public sealed class AdminSeoController : ControllerBase
     public AdminSeoController(SeoService seo) => _seo = seo;
 
     [HttpGet("content")] public async Task<IActionResult> Content(CancellationToken ct) => Ok(await _seo.GetAdminContentAsync(ct));
-    [HttpPut("content/{entityType}/{entityId:guid}")]
-    public async Task<IActionResult> UpdateContent(string entityType, Guid entityId, [FromBody] SeoContentUpdateRequest req, CancellationToken ct)
-        => Ok(await _seo.UpdateContentAsync(entityType, entityId, req, ct));
-}
-
-[ApiController]
-[Authorize(Policy = "Admin")]
-[Route("api/admin/site-settings")]
-public sealed class AdminSiteSettingsController : ControllerBase
-{
-    private readonly ContentService _content;
-    public AdminSiteSettingsController(ContentService content) => _content = content;
-
-    [HttpGet] public async Task<IActionResult> Get(CancellationToken ct) => Ok(await _content.GetSiteSettingsAsync(ct));
-    [HttpPut] public async Task<IActionResult> Update([FromBody] SiteSettingsDto req, CancellationToken ct) => Ok(await _content.UpdateSiteSettingsAsync(req, ct));
 }

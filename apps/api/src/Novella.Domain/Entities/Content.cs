@@ -44,19 +44,3 @@ public class StaticPage
     public bool IsActive { get; set; } = true;
     public DateTime? UpdatedAt { get; set; }
 }
-
-/// <summary>Singleton global site settings.</summary>
-public class SiteSettings
-{
-    public Guid Id { get; set; }
-    public string SiteNameAr { get; set; } = string.Empty;
-    public string SiteNameEn { get; set; } = string.Empty;
-    public string Domain { get; set; } = string.Empty;
-    public string? DefaultSeoTitleAr { get; set; }
-    public string? DefaultSeoTitleEn { get; set; }
-    public string? DefaultSeoDescriptionAr { get; set; }
-    public string? DefaultSeoDescriptionEn { get; set; }
-    public decimal? FreeShippingThreshold { get; set; }
-    public bool IsFreeShippingEnabled { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}

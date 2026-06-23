@@ -20,10 +20,26 @@ public class AdminCompatibilityTests
         var clock = new FakeClock();
         var customer = TestSeed.AddCustomer(db.Db, clock);
 
-        var result = await new CustomerAdminService(db.Db).GetAsync(customer.Id, CancellationToken.None);
+        var result = await new CustomerAdminService(db.Db, clock).GetAsync(customer.Id, CancellationToken.None);
 
         result.FullName.Should().Be(customer.FullName);
         result.GetType().GetProperties().Select(p => p.Name).Should().NotContain(n => n.Contains("Password") || n.Contains("Hash") || n.Contains("Token") || n.Contains("Code"));
+    }
+
+    [Fact]
+    public async Task Admin_can_activate_and_deactivate_customer_without_sensitive_fields()
+    {
+        using var db = new TestDatabase();
+        var clock = new FakeClock();
+        var customer = TestSeed.AddCustomer(db.Db, clock);
+        var service = new CustomerAdminService(db.Db, clock);
+
+        var inactive = await service.SetStatusAsync(customer.Id, false, CancellationToken.None);
+        var active = await service.SetStatusAsync(customer.Id, true, CancellationToken.None);
+
+        inactive.IsActive.Should().BeFalse();
+        active.IsActive.Should().BeTrue();
+        active.GetType().GetProperties().Select(p => p.Name).Should().NotContain(n => n.Contains("Password") || n.Contains("Hash") || n.Contains("Token") || n.Contains("Code"));
     }
 
     [Fact]

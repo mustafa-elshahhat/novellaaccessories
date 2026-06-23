@@ -53,9 +53,6 @@ public sealed class PublicContentController : ControllerBase
         _shipping = shipping;
     }
 
-    [HttpGet("site-settings")]
-    public async Task<IActionResult> SiteSettings(CancellationToken ct) => Ok(await _content.GetSiteSettingsAsync(ct));
-
     [HttpGet("home")]
     public async Task<IActionResult> Home(CancellationToken ct) => Ok(await _content.GetHomeAsync(ct));
 

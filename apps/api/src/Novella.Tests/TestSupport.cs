@@ -67,6 +67,15 @@ public sealed class FakeWhatsAppClient : IWhatsAppClient
 
     public Task<WhatsAppStatusResult> GetStatusAsync(CancellationToken ct = default)
         => Task.FromResult(new WhatsAppStatusResult(Reachable, Connected, "{}", null));
+
+    public Task<WhatsAppProxyResult> GetQrAsync(CancellationToken ct = default)
+        => Task.FromResult(new WhatsAppProxyResult(Reachable, "{\"state\":\"qr_required\",\"qrDataUri\":\"data:image/png;base64,test\"}", null));
+
+    public Task<WhatsAppProxyResult> GetHealthAsync(CancellationToken ct = default)
+        => Task.FromResult(new WhatsAppProxyResult(Reachable, "{\"ok\":true}", null));
+
+    public Task<WhatsAppProxyResult> LogoutAsync(CancellationToken ct = default)
+        => Task.FromResult(new WhatsAppProxyResult(Reachable, "{}", null));
 }
 
 public sealed class FakeWhatsAppConfigStatus : Application.WhatsApp.IWhatsAppConfigStatus

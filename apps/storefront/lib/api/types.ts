@@ -127,18 +127,6 @@ export interface PublicProduct {
   geoContentEn: string | null;
 }
 
-export interface SiteSettings {
-  siteNameAr: string;
-  siteNameEn: string;
-  domain: string;
-  defaultSeoTitleAr: string | null;
-  defaultSeoTitleEn: string | null;
-  defaultSeoDescriptionAr: string | null;
-  defaultSeoDescriptionEn: string | null;
-  freeShippingThreshold: number | null;
-  isFreeShippingEnabled: boolean;
-}
-
 export interface Hero {
   id: string;
   imageUrl: string;
@@ -156,7 +144,6 @@ export interface Hero {
 }
 
 export interface Home {
-  siteSettings: SiteSettings;
   heroes: Hero[];
   categories: PublicCategory[];
   featuredProducts: PublicProductListItem[];

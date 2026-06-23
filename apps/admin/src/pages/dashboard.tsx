@@ -1,1 +1,1 @@
-export { DashboardPage as default } from "@/features/admin-pages";
+export { CanonicalDashboardPage as default } from "@/features/admin-pages";

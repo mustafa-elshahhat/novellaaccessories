@@ -1,1 +1,1 @@
-export { ReportsPage as default } from "@/features/admin-pages";
+export { CanonicalReportsPage as default } from "@/features/admin-pages";

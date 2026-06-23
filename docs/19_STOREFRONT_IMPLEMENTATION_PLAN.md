@@ -110,7 +110,7 @@ Implement the route tree (placeholders first, filled by later phases):
 
 ## Phase S4 — Home Page
 
-**Depends on:** S2, S3; API `GET /api/public/home`, `/hero`, `/site-settings`.
+**Depends on:** S2, S3; API `GET /api/public/home`, `/hero`. Brand metadata comes from code/environment constants.
 
 - [ ] **Admin-managed hero** (image, Ar/En title/subtitle/CTA, CTA link/linked product).
 - [ ] **Featured categories**.

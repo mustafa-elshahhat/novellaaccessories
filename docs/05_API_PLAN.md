@@ -15,7 +15,6 @@
 ### Site and Home
 
 ```text
-GET /api/public/site-settings
 GET /api/public/home
 GET /api/public/hero
 ```
@@ -340,8 +339,9 @@ GET /api/admin/pages
 GET /api/admin/pages/{id}
 PUT /api/admin/pages/{id}
 GET /api/admin/seo/content
-PUT /api/admin/seo/content/{entityType}/{entityId}
 ```
+
+Admin SEO is read-only coverage. Writes happen through the canonical product, category, and static-page edit APIs.
 
 ## 21. Cloudinary APIs
 

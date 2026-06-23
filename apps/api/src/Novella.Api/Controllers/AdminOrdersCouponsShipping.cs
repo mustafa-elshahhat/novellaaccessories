@@ -45,14 +45,16 @@ public sealed class AdminCouponsController : ControllerBase
 
 [ApiController]
 [Authorize(Policy = "Admin")]
-[Route("api/admin/shipping/governorates")]
+[Route("api/admin/shipping")]
 public sealed class AdminShippingController : ControllerBase
 {
     private readonly ShippingService _shipping;
     public AdminShippingController(ShippingService shipping) => _shipping = shipping;
 
-    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => Ok(await _shipping.GetAdminAsync(ct));
-    [HttpPost] public async Task<IActionResult> Create([FromBody] GovernorateUpsertRequest req, CancellationToken ct) => Ok(await _shipping.CreateAsync(req, ct));
-    [HttpPut("{id:guid}")] public async Task<IActionResult> Update(Guid id, [FromBody] GovernorateUpsertRequest req, CancellationToken ct) => Ok(await _shipping.UpdateAsync(id, req, ct));
-    [HttpPatch("{id:guid}/status")] public async Task<IActionResult> Status(Guid id, [FromBody] StatusRequest req, CancellationToken ct) { await _shipping.SetStatusAsync(id, req.IsActive, ct); return Ok(new { success = true }); }
+    [HttpGet("governorates")] public async Task<IActionResult> List(CancellationToken ct) => Ok(await _shipping.GetAdminAsync(ct));
+    [HttpPost("governorates")] public async Task<IActionResult> Create([FromBody] GovernorateUpsertRequest req, CancellationToken ct) => Ok(await _shipping.CreateAsync(req, ct));
+    [HttpPut("governorates/{id:guid}")] public async Task<IActionResult> Update(Guid id, [FromBody] GovernorateUpsertRequest req, CancellationToken ct) => Ok(await _shipping.UpdateAsync(id, req, ct));
+    [HttpPatch("governorates/{id:guid}/status")] public async Task<IActionResult> Status(Guid id, [FromBody] StatusRequest req, CancellationToken ct) { await _shipping.SetStatusAsync(id, req.IsActive, ct); return Ok(new { success = true }); }
+    [HttpGet("settings")] public async Task<IActionResult> Settings(CancellationToken ct) => Ok(await _shipping.GetSettingsAsync(ct));
+    [HttpPut("settings")] public async Task<IActionResult> UpdateSettings([FromBody] ShippingSettingsDto req, CancellationToken ct) => Ok(await _shipping.UpdateSettingsAsync(req, ct));
 }

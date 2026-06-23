@@ -55,14 +55,4 @@ public sealed class CloudinaryImageStorageProvider : IImageStorageProvider
 
         return new AppImageUploadResult(result.SecureUrl!.ToString(), result.PublicId);
     }
-
-    public async Task<bool> DeleteAsync(string publicId, CancellationToken ct = default)
-    {
-        if (_cloudinary is null)
-            throw new AppException(ErrorCodes.UploadFailed, "Cloudinary is not configured.", 503);
-
-        var result = await _cloudinary.DestroyAsync(new DeletionParams(publicId));
-        return string.Equals(result.Result, "ok", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(result.Result, "not found", StringComparison.OrdinalIgnoreCase);
-    }
 }

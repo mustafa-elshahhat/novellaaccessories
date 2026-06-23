@@ -422,9 +422,6 @@ WhatsAppSettings
 - Id uniqueidentifier PK
 - IsEnabled bit not null
 - TransportName nvarchar(100) not null -- WhatsApp transport, default "BaileysWhatsAppWeb"
-- ServiceBaseUrl nvarchar(max) null -- base URL of the apps/whatsapp sidecar (WhatsApp__BaseUrl)
-- OtpTemplate nvarchar(max) null
-- OrderConfirmationTemplate nvarchar(max) null
 - TwoOrderCouponTemplate nvarchar(max) null
 - AbandonedCheckoutTemplate nvarchar(max) null
 - InactiveCustomerTemplate nvarchar(max) null
@@ -434,8 +431,8 @@ WhatsAppSettings
 Notes:
 
 - `TransportName` identifies the WhatsApp transport used by the sidecar. For the MVP this is Baileys / WhatsApp Web (`BaileysWhatsAppWeb`); a future official WhatsApp Business API transport would change this value.
-- The internal API key used to call the sidecar is **not** stored in this table — it lives only in `apps/api` environment variables (`WhatsApp__InternalApiKey`). No raw secrets are persisted in the database.
-- This table holds business configuration/templates only. Baileys auth/session state is stored externally in MongoDB by `apps/whatsapp`, never in SQL Server.
+- The sidecar base URL and internal API key are **not** stored in this table — they live only in `apps/api` environment variables (`WhatsApp__BaseUrl`, `WhatsApp__InternalApiKey`). No raw secrets are persisted in the database.
+- Registration OTP, password-reset OTP, phone-change OTP, and order-confirmation templates are fixed in code. This table stores only editable business/marketing templates. Baileys auth/session state is stored externally in MongoDB by `apps/whatsapp`, never in SQL Server.
 
 ## WhatsAppMessageLogs
 
@@ -527,22 +524,17 @@ AnalyticsEvents
 - CreatedAt datetime2 not null
 ```
 
-## SiteSettings
+## ShippingSettings
 
 ```text
-SiteSettings
+ShippingSettings
 - Id uniqueidentifier PK
-- SiteNameAr nvarchar(200) not null
-- SiteNameEn nvarchar(200) not null
-- Domain nvarchar(300) not null
-- DefaultSeoTitleAr nvarchar(300) null
-- DefaultSeoTitleEn nvarchar(300) null
-- DefaultSeoDescriptionAr nvarchar(500) null
-- DefaultSeoDescriptionEn nvarchar(500) null
 - FreeShippingThreshold decimal(18,2) null
 - IsFreeShippingEnabled bit not null
 - UpdatedAt datetime2 not null
 ```
+
+Brand/domain/default SEO fallback values are environment/code-managed for the single-brand store, not database-managed admin settings.
 
 ## 3. Suggested Indexes
 

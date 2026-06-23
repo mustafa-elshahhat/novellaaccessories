@@ -1,1 +1,1 @@
-export { CouponDetailPage as default } from "@/features/admin-pages";
+export { CanonicalCouponDetailPage as default } from "@/features/admin-pages";

@@ -16,6 +16,8 @@ public sealed record AdminGovernorateDto(
 public sealed record GovernorateUpsertRequest(
     string NameAr, string NameEn, decimal CustomerPaidShippingFee, decimal ActualShippingCost, bool IsActive, int SortOrder);
 
+public sealed record ShippingSettingsDto(decimal? FreeShippingThreshold, bool IsFreeShippingEnabled);
+
 /// <summary>
 /// Governorate shipping management. The actual shipping cost is admin-only and never exposed to
 /// customers. Order snapshots store paid fee, actual cost, and margin (paid - actual).
@@ -76,6 +78,38 @@ public sealed class ShippingService
         var g = await _db.ShippingGovernorates.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw AppException.NotFound("Governorate not found.");
         g.IsActive = isActive; g.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<ShippingSettingsDto> GetSettingsAsync(CancellationToken ct)
+    {
+        var s = await _db.ShippingSettings.AsNoTracking().FirstOrDefaultAsync(ct);
+        return s is null ? new ShippingSettingsDto(null, false) : new ShippingSettingsDto(s.FreeShippingThreshold, s.IsFreeShippingEnabled);
+    }
+
+    public async Task<ShippingSettingsDto> UpdateSettingsAsync(ShippingSettingsDto req, CancellationToken ct)
+    {
+        if (req.FreeShippingThreshold is < 0)
+            throw AppException.Validation("Free-shipping threshold cannot be negative.");
+        var s = await _db.ShippingSettings.FirstOrDefaultAsync(ct);
+        if (s is null)
+        {
+            s = new ShippingSettings { Id = Guid.NewGuid() };
+            _db.ShippingSettings.Add(s);
+        }
+        s.FreeShippingThreshold = req.FreeShippingThreshold;
+        s.IsFreeShippingEnabled = req.IsFreeShippingEnabled;
+        s.UpdatedAt = _clock.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return req;
+    }
+
+    public async Task<decimal> ApplyFreeShippingAsync(decimal productSubtotalAfterDiscounts, decimal governorateFee, CancellationToken ct)
+    {
+        var settings = await _db.ShippingSettings.AsNoTracking().FirstOrDefaultAsync(ct);
+        if (settings is { IsFreeShippingEnabled: true, FreeShippingThreshold: { } threshold }
+            && productSubtotalAfterDiscounts >= threshold)
+            return 0m;
+        return governorateFee;
     }
 
     /// <summary>Resolves an active governorate for checkout; throws SHIPPING_GOVERNORATE_INACTIVE otherwise.</summary>

@@ -6,12 +6,10 @@ import { env } from "@/lib/env";
 export const navigation = [
   { group: "Overview", items: [{ label: "Dashboard", to: "/dashboard" }] },
   { group: "Catalog", items: [{ label: "Products", to: "/products" }, { label: "Categories", to: "/categories" }] },
-  { group: "Orders & Customers", items: [{ label: "Orders", to: "/orders" }, { label: "Customers", to: "/customers" }] },
-  { group: "Marketing", items: [{ label: "Coupons", to: "/coupons" }, { label: "Two-order settings", to: "/coupons/two-order-settings" }, { label: "Heroes", to: "/heroes" }] },
-  { group: "Operations", items: [{ label: "Shipping", to: "/shipping" }, { label: "WhatsApp settings", to: "/whatsapp/settings" }, { label: "WhatsApp logs", to: "/whatsapp/logs" }, { label: "Payments", to: "/payments" }, { label: "Expenses", to: "/expenses" }] },
-  { group: "Content", items: [{ label: "Pages", to: "/pages" }, { label: "SEO", to: "/seo" }] },
-  { group: "Reports", items: [{ label: "Reports", to: "/reports" }, { label: "Analytics", to: "/analytics" }] },
-  { group: "System", items: [{ label: "Settings", to: "/settings" }] }
+  { group: "Sales", items: [{ label: "Orders", to: "/orders" }, { label: "Customers", to: "/customers" }, { label: "Discounts", to: "/discounts" }] },
+  { group: "Storefront", items: [{ label: "Storefront Content", to: "/content" }] },
+  { group: "Operations", items: [{ label: "Shipping", to: "/shipping" }, { label: "WhatsApp", to: "/whatsapp" }, { label: "Expenses", to: "/expenses" }] },
+  { group: "Insights", items: [{ label: "Reports", to: "/reports" }] }
 ];
 
 export function AdminShell() {

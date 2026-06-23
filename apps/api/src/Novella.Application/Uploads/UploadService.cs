@@ -42,11 +42,4 @@ public sealed class UploadService
         var result = await _storage.UploadAsync(content, fileName, folder, ct);
         return new UploadedImageDto(result.Url, result.PublicId);
     }
-
-    public async Task DeleteAsync(string publicId, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(publicId))
-            throw AppException.Validation("publicId is required.");
-        await _storage.DeleteAsync(publicId, ct);
-    }
 }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/lib/i18n/navigation";
 import { pick } from "@/lib/i18n/localize";
-import { getHome, getSiteSettings } from "@/lib/api/public";
-import type { SiteSettings } from "@/lib/api/types";
+import { getHome } from "@/lib/api/public";
+import { BRAND } from "@/lib/constants";
 import { buildPublicMetadata } from "@/lib/seo/metadata";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { Hero } from "@/features/home/hero";
@@ -16,20 +16,13 @@ type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
-  let settings: SiteSettings | null = null;
-  try {
-    settings = await getSiteSettings();
-  } catch {
-    settings = null;
-  }
   const t = await getTranslations({ locale, namespace: "home" });
   const title =
-    (settings && pick(locale, settings.defaultSeoTitleAr, settings.defaultSeoTitleEn)) ||
-    (settings && pick(locale, settings.siteNameAr, settings.siteNameEn)) ||
+    pick(locale, BRAND.defaultSeoTitleAr, BRAND.defaultSeoTitleEn) ||
+    pick(locale, BRAND.nameAr, BRAND.nameEn) ||
     "Novella";
   const description =
-    (settings &&
-      pick(locale, settings.defaultSeoDescriptionAr, settings.defaultSeoDescriptionEn)) ||
+    pick(locale, BRAND.defaultSeoDescriptionAr, BRAND.defaultSeoDescriptionEn) ||
     t("brandStoryBody");
   return buildPublicMetadata({
     locale,
@@ -51,7 +44,7 @@ export default async function HomePage({ params }: PageProps) {
   const categories = home.categories;
   const featured = home.featuredProducts;
   const discounted = featured.filter((p) => p.hasDiscount).slice(0, 8);
-  const siteName = pick(locale, home.siteSettings.siteNameAr, home.siteSettings.siteNameEn);
+  const siteName = pick(locale, BRAND.nameAr, BRAND.nameEn);
 
   return (
     <>

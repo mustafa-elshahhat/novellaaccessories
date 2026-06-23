@@ -67,7 +67,7 @@ Implement EF Core entities + configurations + the initial migration for **all** 
 - [ ] `WhatsAppSettings`, `WhatsAppMessageLogs`
 - [ ] `ReminderSettings`, `ReminderLogs`
 - [ ] `AnalyticsVisitors`, `AnalyticsSessions`, `AnalyticsEvents`
-- [ ] `SiteSettings`
+- [ ] `ShippingSettings`
 
 Tasks:
 - [ ] Use `decimal(18,2)` for money, `nvarchar` for bilingual content, UTC datetimes.
@@ -90,7 +90,7 @@ Tasks:
 - [ ] Seed default categories: **Rings, Necklaces, Earrings, Bracelets** (Ar/En names + slugs).
 - [ ] Seed **Egyptian governorates** with placeholder `CustomerPaidShippingFee` and `ActualShippingCost`.
 - [ ] Seed **static pages** keys: `about`, `contact`, `privacy`, `terms`, `returns`, `shipping`, `faq` (Ar/En titles/slugs/content placeholders).
-- [ ] Seed **SiteSettings** (site name Ar/En, domain `novellaaccessories.store`, default SEO, free-shipping disabled).
+- [ ] Seed **ShippingSettings** (free-shipping disabled). Brand/domain/default SEO fallback is code/environment managed.
 - [ ] Seed **WhatsAppSettings** with `IsEnabled = false`.
 - [ ] Seed **ReminderSettings** with both reminders disabled.
 - [ ] Seed **TwoOrderCouponSettings** disabled by default.
@@ -505,7 +505,6 @@ GET /api/public/seo/category/{slug}
 GET /api/public/seo/page/{slug}
 # Admin
 GET /api/admin/seo/content
-PUT /api/admin/seo/content/{entityType}/{entityId}
 GET /api/admin/pages ; GET/PUT /api/admin/pages/{id}
 ```
 
@@ -526,7 +525,7 @@ GET /api/admin/pages ; GET/PUT /api/admin/pages/{id}
 
 Endpoints:
 ```text
-GET /api/public/site-settings ; GET /api/public/home ; GET /api/public/hero
+GET /api/public/home ; GET /api/public/hero
 GET /api/public/pages/{slug} ; GET /api/public/faq
 GET    /api/admin/heroes ; POST ; PUT{id} ; DELETE{id} ; PATCH status ; PATCH reorder
 GET /api/admin/dashboard/summary ; /recent-orders ; /alerts
@@ -596,7 +595,7 @@ GET /api/admin/dashboard/summary ; /recent-orders ; /alerts
 - All tables migrated and seeded; admin + catalog + governorates + static pages + settings present.
 - Full auth + OTP lifecycle works with rate limiting and hashed OTPs.
 - Catalog, pricing/discounts, cart/checkout, orders/stock fully functional and backend-authoritative.
-- Two-order coupon, shipping snapshots, payments readiness, Cloudinary, WhatsApp, reminders, analytics, reports/profit, SEO/AEO/GEO, hero/pages/settings/dashboard all implemented per phase.
+- Two-order coupon, shipping snapshots, payments readiness, Cloudinary, WhatsApp, reminders, analytics, reports/profit, SEO/AEO/GEO, hero/pages/content/dashboard all implemented per phase.
 - All endpoint groups exist; error model is consistent.
 - Critical test suite passes, including the no-purchase-cost-leak contract test.
 

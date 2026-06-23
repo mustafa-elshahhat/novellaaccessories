@@ -9,6 +9,8 @@ public sealed record WhatsAppSendResult(bool Success, string? ProviderMessageId,
 /// <summary>Connection/session status proxied from the sidecar's protected /status endpoint.</summary>
 public sealed record WhatsAppStatusResult(bool Reachable, bool Connected, string? RawJson, string? Error);
 
+public sealed record WhatsAppProxyResult(bool Reachable, string? RawJson, string? Error);
+
 /// <summary>
 /// HTTP client in apps/api that calls the apps/whatsapp sidecar. apps/api renders the final
 /// message text and posts it to <c>/send-message</c> with the internal API key. apps/api never
@@ -18,6 +20,9 @@ public interface IWhatsAppClient
 {
     Task<WhatsAppSendResult> SendMessageAsync(string phone, string message, CancellationToken ct = default);
     Task<WhatsAppStatusResult> GetStatusAsync(CancellationToken ct = default);
+    Task<WhatsAppProxyResult> GetQrAsync(CancellationToken ct = default);
+    Task<WhatsAppProxyResult> GetHealthAsync(CancellationToken ct = default);
+    Task<WhatsAppProxyResult> LogoutAsync(CancellationToken ct = default);
 }
 
 /// <summary>Result of an image upload.</summary>
@@ -27,7 +32,6 @@ public sealed record ImageUploadResult(string Url, string PublicId);
 public interface IImageStorageProvider
 {
     Task<ImageUploadResult> UploadAsync(Stream content, string fileName, string folder, CancellationToken ct = default);
-    Task<bool> DeleteAsync(string publicId, CancellationToken ct = default);
 }
 
 /// <summary>Outcome of initiating a payment.</summary>

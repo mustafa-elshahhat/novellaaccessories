@@ -232,9 +232,7 @@ public sealed class AuthService
     private async Task IssueAndSendOtpAsync(string phone, string normalized, OtpPurpose purpose, Guid customerId, string name, CancellationToken ct)
     {
         var code = await _otp.IssueAsync(phone, normalized, purpose, customerId, ct);
-        var settings = await _whatsApp.GetSettingsAsync(ct);
-        var template = settings.OtpTemplate ?? DefaultTemplates.Otp;
-        var body = TemplateRenderer.Render(template, new Dictionary<string, string>
+        var body = TemplateRenderer.Render(DefaultTemplates.Otp, new Dictionary<string, string>
         {
             ["name"] = name,
             ["code"] = code,

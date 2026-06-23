@@ -1,1 +1,1 @@
-export { ShippingPage as default } from "@/features/admin-pages";
+export { CanonicalShippingPage as default } from "@/features/admin-pages";

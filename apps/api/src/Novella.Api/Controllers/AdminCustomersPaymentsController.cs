@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Novella.Application.Catalog;
+using Novella.Application.Common;
 using Novella.Application.Customers;
 using Novella.Application.Payments;
 
@@ -15,6 +17,7 @@ public sealed class AdminCustomersController : ControllerBase
 
     [HttpGet] public async Task<IActionResult> List([FromQuery] AdminCustomerQuery query, CancellationToken ct) => Ok(await _svc.ListAsync(query, ct));
     [HttpGet("{id:guid}")] public async Task<IActionResult> Get(Guid id, CancellationToken ct) => Ok(await _svc.GetAsync(id, ct));
+    [HttpPatch("{id:guid}/status")] public async Task<IActionResult> Status(Guid id, [FromBody] StatusRequest req, CancellationToken ct) => Ok(await _svc.SetStatusAsync(id, req.IsActive, ct));
 }
 
 [ApiController]

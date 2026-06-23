@@ -39,7 +39,7 @@ public class NovellaDbContext : DbContext, IAppDbContext
 
     public DbSet<HeroSection> HeroSections => Set<HeroSection>();
     public DbSet<StaticPage> StaticPages => Set<StaticPage>();
-    public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
+    public DbSet<ShippingSettings> ShippingSettings => Set<ShippingSettings>();
 
     public DbSet<WhatsAppSettings> WhatsAppSettings => Set<WhatsAppSettings>();
     public DbSet<WhatsAppMessageLog> WhatsAppMessageLogs => Set<WhatsAppMessageLog>();

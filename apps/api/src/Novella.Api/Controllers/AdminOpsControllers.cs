@@ -15,14 +15,25 @@ namespace Novella.Api.Controllers;
 public sealed class AdminWhatsAppController : ControllerBase
 {
     private readonly WhatsAppAdminService _svc;
-    public AdminWhatsAppController(WhatsAppAdminService svc) => _svc = svc;
+    private readonly ReminderService _reminders;
+    public AdminWhatsAppController(WhatsAppAdminService svc, ReminderService reminders)
+    {
+        _svc = svc;
+        _reminders = reminders;
+    }
 
     [HttpGet("settings")] public async Task<IActionResult> GetSettings(CancellationToken ct) => Ok(await _svc.GetSettingsAsync(ct));
     [HttpPut("settings")] public async Task<IActionResult> UpdateSettings([FromBody] WhatsAppSettingsUpdateRequest req, CancellationToken ct) => Ok(await _svc.UpdateSettingsAsync(req, ct));
     [HttpGet("status")] public async Task<IActionResult> Status(CancellationToken ct) => Ok(await _svc.GetStatusAsync(ct));
+    [HttpGet("qr")] public async Task<IActionResult> Qr(CancellationToken ct) => Ok(await _svc.GetQrAsync(ct));
+    [HttpGet("health")] public async Task<IActionResult> Health(CancellationToken ct) => Ok(await _svc.GetHealthAsync(ct));
+    [HttpPost("logout")] public async Task<IActionResult> Logout(CancellationToken ct) => Ok(await _svc.LogoutAsync(ct));
+    [HttpPost("reset-session")] public async Task<IActionResult> ResetSession(CancellationToken ct) => Ok(await _svc.LogoutAsync(ct));
     [HttpGet("messages")] public async Task<IActionResult> Messages([FromQuery] WhatsAppMessageQuery query, CancellationToken ct) => Ok(await _svc.GetMessagesAsync(query, ct));
     [HttpPost("messages/{id:guid}/retry")] public async Task<IActionResult> Retry(Guid id, CancellationToken ct) => Ok(await _svc.RetryAsync(id, ct));
     [HttpPost("test")] public async Task<IActionResult> Test([FromBody] WhatsAppTestRequest req, CancellationToken ct) => Ok(await _svc.SendTestAsync(req, ct));
+    [HttpGet("automations")] public async Task<IActionResult> Automations(CancellationToken ct) => Ok(await _reminders.GetSettingsAsync(ct));
+    [HttpPut("automations")] public async Task<IActionResult> UpdateAutomations([FromBody] ReminderSettingsDto req, CancellationToken ct) => Ok(await _reminders.UpdateSettingsAsync(req, ct));
 }
 
 [ApiController]
@@ -48,8 +59,6 @@ public sealed class AdminUploadsController : ControllerBase
     private readonly UploadService _svc;
     public AdminUploadsController(UploadService svc) => _svc = svc;
 
-    public sealed record DeleteImageRequest(string PublicId);
-
     [HttpPost("image")]
     [RequestSizeLimit(15_000_000)]
     public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] string? entityType, [FromForm] string? entityId, CancellationToken ct)
@@ -64,24 +73,4 @@ public sealed class AdminUploadsController : ControllerBase
         var result = await _svc.UploadAsync(stream, file.FileName, entityType, entityId, ct);
         return Ok(result);
     }
-
-    [HttpDelete("image")]
-    public async Task<IActionResult> Delete([FromBody] DeleteImageRequest req, CancellationToken ct)
-    {
-        await _svc.DeleteAsync(req.PublicId, ct);
-        return Ok(new { success = true });
-    }
-}
-
-[ApiController]
-[Authorize(Policy = "Admin")]
-[Route("api/admin/reminders")]
-public sealed class AdminRemindersController : ControllerBase
-{
-    private readonly ReminderService _svc;
-    public AdminRemindersController(ReminderService svc) => _svc = svc;
-
-    [HttpGet("settings")] public async Task<IActionResult> GetSettings(CancellationToken ct) => Ok(await _svc.GetSettingsAsync(ct));
-    [HttpPut("settings")] public async Task<IActionResult> UpdateSettings([FromBody] ReminderSettingsDto req, CancellationToken ct) => Ok(await _svc.UpdateSettingsAsync(req, ct));
-    [HttpPost("run")] public async Task<IActionResult> Run(CancellationToken ct) => Ok(await _svc.RunAsync(ct));
 }

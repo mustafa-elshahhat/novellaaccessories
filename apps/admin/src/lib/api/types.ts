@@ -51,8 +51,10 @@ export type TwoOrderSettings = { isEnabled: boolean; discountPercentage: number;
 export type Governorate = { id: Id; nameAr: string; nameEn: string; customerPaidShippingFee: number; actualShippingCost: number; isActive: boolean; sortOrder: number };
 export type Hero = { id: Id; imageUrl: string; imagePublicId: string; titleAr: string; titleEn: string; subtitleAr?: string | null; subtitleEn?: string | null; ctaTextAr?: string | null; ctaTextEn?: string | null; ctaLink?: string | null; linkedProductId?: Id | null; isActive: boolean; sortOrder: number };
 
-export type WhatsAppSettings = { isEnabled: boolean; transportName: string; serviceBaseUrl?: string | null; otpTemplate?: string | null; orderConfirmationTemplate?: string | null; twoOrderCouponTemplate?: string | null; abandonedCheckoutTemplate?: string | null; inactiveCustomerTemplate?: string | null; serviceConfigured: boolean };
-export type WhatsAppStatus = { reachable: boolean; connected: boolean; keyConfigured: boolean; detail?: string | null };
+export type WhatsAppSettings = { isEnabled: boolean; transportName: string; twoOrderCouponTemplate?: string | null; abandonedCheckoutTemplate?: string | null; inactiveCustomerTemplate?: string | null; serviceConfigured: boolean };
+export type WhatsAppStatus = { reachable: boolean; connected: boolean; keyConfigured: boolean; state?: string | null; qrAvailable: boolean; detail?: string | null; error?: string | null };
+export type WhatsAppQr = { state?: string | null; qrDataUri?: string | null; error?: string | null };
+export type WhatsAppHealth = { reachable: boolean; detail?: string | null; error?: string | null };
 export type WhatsAppMessage = { id: Id; customerId?: Id | null; phoneNumber: string; messageType: string; templateKey?: string | null; messageBody?: string | null; status: string; failureReason?: string | null; retryCount: number; sentAt?: string | null; createdAt: string };
 
 export type PaymentMethodReadiness = { method: string; providerName: string; isActive: boolean; environment: string; publicKeyConfigured: boolean; secretKeyConfigured: boolean; webhookUrl?: string | null; readinessStatus: string };
@@ -65,7 +67,7 @@ export type AnalyticsReport = { sessions: number; uniqueVisitors: number; checko
 
 export type StaticPage = { id: Id; key: string; titleAr: string; titleEn: string; slugAr: string; slugEn: string; contentAr: string; contentEn: string; seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null; aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null; isActive: boolean };
 export type SeoMetadata = { entityType: string; entityId: Id; slugAr: string; slugEn: string; seoTitleAr?: string | null; seoTitleEn?: string | null; seoDescriptionAr?: string | null; seoDescriptionEn?: string | null; aeoSummaryAr?: string | null; aeoSummaryEn?: string | null; geoContentAr?: string | null; geoContentEn?: string | null };
-export type SiteSettings = { siteNameAr: string; siteNameEn: string; domain: string; defaultSeoTitleAr?: string | null; defaultSeoTitleEn?: string | null; defaultSeoDescriptionAr?: string | null; defaultSeoDescriptionEn?: string | null; freeShippingThreshold?: number | null; isFreeShippingEnabled: boolean };
 export type ReminderSettings = { abandonedCheckoutEnabled: boolean; abandonedCheckoutDelayHours: number; inactiveCustomerEnabled: boolean; inactiveCustomerDelayDays: number };
+export type ShippingSettings = { freeShippingThreshold?: number | null; isFreeShippingEnabled: boolean };
 export type DashboardSummary = { todayOrders: number; todayRevenue: number; deliveredOrdersThisMonth: number; pendingOrders: number; lowStockVariants: number; failedWhatsAppMessages: number; conversionRateThisMonth: number; netProfitThisMonth: number };
 export type DashboardAlert = { type: string; message: string; count: number };

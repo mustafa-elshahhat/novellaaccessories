@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Novella.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Novella.Infrastructure.Persistence;
 namespace Novella.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(NovellaDbContext))]
-    partial class NovellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260623155538_AdminInformationArchitectureRedesign")]
+    partial class AdminInformationArchitectureRedesign
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

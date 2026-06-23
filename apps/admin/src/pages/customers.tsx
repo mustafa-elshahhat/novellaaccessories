@@ -1,1 +1,1 @@
-export { CustomersPage as default } from "@/features/admin-pages";
+export { CanonicalCustomersPage as default } from "@/features/admin-pages";

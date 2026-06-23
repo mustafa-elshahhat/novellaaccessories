@@ -290,9 +290,7 @@ public sealed class OrderService
 
     private async Task SendOrderConfirmationAsync(Order order, CancellationToken ct)
     {
-        var settings = await _whatsApp.GetSettingsAsync(ct);
-        var template = settings.OrderConfirmationTemplate ?? DefaultTemplates.OrderConfirmation;
-        var body = TemplateRenderer.Render(template, new Dictionary<string, string>
+        var body = TemplateRenderer.Render(DefaultTemplates.OrderConfirmation, new Dictionary<string, string>
         {
             ["name"] = order.CustomerName,
             ["order_number"] = order.OrderNumber,

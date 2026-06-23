@@ -243,12 +243,10 @@ public sealed class CheckoutService
 
         var pricing = couponInput is null ? baseline : PricingCalculator.Calculate(inputs, couponInput, now);
 
-        // Free-shipping threshold (optional setting).
-        var settings = await _db.SiteSettings.AsNoTracking().FirstOrDefaultAsync(ct);
-        var shippingFee = governorate.CustomerPaidShippingFee;
-        if (settings is { IsFreeShippingEnabled: true, FreeShippingThreshold: { } threshold }
-            && pricing.ProductSubtotalAfterAllDiscounts >= threshold)
-            shippingFee = 0m;
+        var shippingFee = await _shipping.ApplyFreeShippingAsync(
+            pricing.ProductSubtotalAfterAllDiscounts,
+            governorate.CustomerPaidShippingFee,
+            ct);
 
         var grandTotal = PricingCalculator.Round(pricing.ProductSubtotalAfterAllDiscounts + shippingFee);
 

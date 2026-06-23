@@ -204,8 +204,6 @@ public sealed class DevelopmentSeedTests : IDisposable
                 $"https://res.cloudinary.com/demo/{folder}/{fileName}",
                 $"{folder}/{Path.GetFileNameWithoutExtension(fileName)}"));
         }
-
-        public Task<bool> DeleteAsync(string publicId, CancellationToken ct = default) => Task.FromResult(true);
     }
 
     private sealed class FakeHostEnvironment : IHostEnvironment

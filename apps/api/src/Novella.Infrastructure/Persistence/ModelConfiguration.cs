@@ -310,15 +310,6 @@ internal static class ModelConfiguration
             e.Property(x => x.AltEn).HasMaxLength(300);
         });
 
-        b.Entity<SiteSettings>(e =>
-        {
-            e.Property(x => x.SiteNameAr).HasMaxLength(200);
-            e.Property(x => x.SiteNameEn).HasMaxLength(200);
-            e.Property(x => x.Domain).HasMaxLength(300);
-            e.Property(x => x.DefaultSeoTitleAr).HasMaxLength(300);
-            e.Property(x => x.DefaultSeoTitleEn).HasMaxLength(300);
-            e.Property(x => x.DefaultSeoDescriptionAr).HasMaxLength(500);
-            e.Property(x => x.DefaultSeoDescriptionEn).HasMaxLength(500);
-        });
+        b.Entity<ShippingSettings>();
     }
 }

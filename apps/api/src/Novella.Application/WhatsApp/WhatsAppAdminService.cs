@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Novella.Application.Abstractions;
 using Novella.Application.Common;
 using Novella.Domain.Entities;
@@ -8,17 +10,17 @@ namespace Novella.Application.WhatsApp;
 
 // Settings DTO NEVER includes the internal API key (it is not stored in the DB).
 public sealed record WhatsAppSettingsDto(
-    bool IsEnabled, string TransportName, string? ServiceBaseUrl,
-    string? OtpTemplate, string? OrderConfirmationTemplate, string? TwoOrderCouponTemplate,
+    bool IsEnabled, string TransportName, string? TwoOrderCouponTemplate,
     string? AbandonedCheckoutTemplate, string? InactiveCustomerTemplate,
     bool ServiceConfigured);
 
 public sealed record WhatsAppSettingsUpdateRequest(
-    bool IsEnabled, string? ServiceBaseUrl,
-    string? OtpTemplate, string? OrderConfirmationTemplate, string? TwoOrderCouponTemplate,
+    bool IsEnabled, string? TwoOrderCouponTemplate,
     string? AbandonedCheckoutTemplate, string? InactiveCustomerTemplate);
 
-public sealed record WhatsAppStatusDto(bool Reachable, bool Connected, bool KeyConfigured, string? Detail);
+public sealed record WhatsAppStatusDto(bool Reachable, bool Connected, bool KeyConfigured, string? State, bool QrAvailable, string? Detail, string? Error);
+public sealed record WhatsAppQrDto(string? State, string? QrDataUri, string? Error);
+public sealed record WhatsAppHealthDto(bool Reachable, string? Detail, string? Error);
 
 public sealed record WhatsAppMessageLogDto(
     Guid Id, Guid? CustomerId, string PhoneNumber, WhatsAppMessageType MessageType, string? TemplateKey,
@@ -57,8 +59,7 @@ public sealed class WhatsAppAdminService
     public async Task<WhatsAppSettingsDto> GetSettingsAsync(CancellationToken ct)
     {
         var s = await _messenger.GetSettingsAsync(ct);
-        return new WhatsAppSettingsDto(s.IsEnabled, s.TransportName, s.ServiceBaseUrl,
-            s.OtpTemplate, s.OrderConfirmationTemplate, s.TwoOrderCouponTemplate,
+        return new WhatsAppSettingsDto(s.IsEnabled, s.TransportName, s.TwoOrderCouponTemplate,
             s.AbandonedCheckoutTemplate, s.InactiveCustomerTemplate, _serviceConfigured);
     }
 
@@ -70,10 +71,10 @@ public sealed class WhatsAppAdminService
             s = new WhatsAppSettings { Id = Guid.NewGuid(), TransportName = "BaileysWhatsAppWeb" };
             _db.WhatsAppSettings.Add(s);
         }
+        ValidateTemplate(req.TwoOrderCouponTemplate, "two-delivered-orders reward", new[] { "name", "coupon_code", "discount", "expiry_date" });
+        ValidateTemplate(req.AbandonedCheckoutTemplate, "abandoned checkout", new[] { "name", "link" });
+        ValidateTemplate(req.InactiveCustomerTemplate, "inactive customer", new[] { "name", "store_link" });
         s.IsEnabled = req.IsEnabled;
-        s.ServiceBaseUrl = req.ServiceBaseUrl;
-        s.OtpTemplate = req.OtpTemplate;
-        s.OrderConfirmationTemplate = req.OrderConfirmationTemplate;
         s.TwoOrderCouponTemplate = req.TwoOrderCouponTemplate;
         s.AbandonedCheckoutTemplate = req.AbandonedCheckoutTemplate;
         s.InactiveCustomerTemplate = req.InactiveCustomerTemplate;
@@ -85,7 +86,30 @@ public sealed class WhatsAppAdminService
     public async Task<WhatsAppStatusDto> GetStatusAsync(CancellationToken ct)
     {
         var status = await _client.GetStatusAsync(ct);
-        return new WhatsAppStatusDto(status.Reachable, status.Connected, _serviceConfigured, status.Error ?? (status.Connected ? "connected" : "not_connected"));
+        var (state, qrAvailable, detail) = ParseStatus(status.RawJson);
+        return new WhatsAppStatusDto(status.Reachable, status.Connected, _serviceConfigured, state, qrAvailable,
+            detail ?? status.RawJson ?? (status.Connected ? "connected" : "not_connected"), status.Error);
+    }
+
+    public async Task<WhatsAppQrDto> GetQrAsync(CancellationToken ct)
+    {
+        var qr = await _client.GetQrAsync(ct);
+        var (state, dataUri, error) = ParseQr(qr.RawJson);
+        return new WhatsAppQrDto(state, dataUri, error ?? qr.Error);
+    }
+
+    public async Task<WhatsAppHealthDto> GetHealthAsync(CancellationToken ct)
+    {
+        var health = await _client.GetHealthAsync(ct);
+        return new WhatsAppHealthDto(health.Reachable, health.RawJson, health.Error);
+    }
+
+    public async Task<WhatsAppStatusDto> LogoutAsync(CancellationToken ct)
+    {
+        var result = await _client.LogoutAsync(ct);
+        if (!result.Reachable || result.Error is not null)
+            return new WhatsAppStatusDto(result.Reachable, false, _serviceConfigured, null, false, result.RawJson, result.Error);
+        return await GetStatusAsync(ct);
     }
 
     public async Task<PagedResult<WhatsAppMessageLogDto>> GetMessagesAsync(WhatsAppMessageQuery query, CancellationToken ct)
@@ -122,6 +146,48 @@ public sealed class WhatsAppAdminService
         var log = await _db.WhatsAppMessageLogs.AsNoTracking().FirstAsync(m => m.Id == logId, ct);
         return new WhatsAppMessageLogDto(log.Id, log.CustomerId, log.PhoneNumber, log.MessageType, log.TemplateKey,
             log.MessageBody, log.Status, log.FailureReason, log.RetryCount, log.SentAt, log.CreatedAt);
+    }
+
+    private static void ValidateTemplate(string? template, string label, IEnumerable<string> allowedPlaceholders)
+    {
+        if (string.IsNullOrWhiteSpace(template)) return;
+        var allowed = allowedPlaceholders.ToHashSet(StringComparer.Ordinal);
+        foreach (Match match in Regex.Matches(template, "{{\\s*([a-zA-Z0-9_]+)\\s*}}"))
+        {
+            var placeholder = match.Groups[1].Value;
+            if (!allowed.Contains(placeholder))
+                throw AppException.Validation($"Unsupported {label} placeholder '{{{{{placeholder}}}}}'.");
+        }
+    }
+
+    private static (string? state, bool qrAvailable, string? detail) ParseStatus(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return (null, false, null);
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            var root = doc.RootElement;
+            var state = root.TryGetProperty("state", out var s) ? s.GetString() : null;
+            var qrAvailable = root.TryGetProperty("qrAvailable", out var q) && q.ValueKind == JsonValueKind.True;
+            var error = root.TryGetProperty("error", out var e) ? e.GetString() : null;
+            return (state, qrAvailable, error);
+        }
+        catch (JsonException) { return (null, false, raw); }
+    }
+
+    private static (string? state, string? qrDataUri, string? error) ParseQr(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return (null, null, null);
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            var root = doc.RootElement;
+            var state = root.TryGetProperty("state", out var s) ? s.GetString() : null;
+            var data = root.TryGetProperty("qrDataUri", out var q) ? q.GetString() : null;
+            var error = root.TryGetProperty("error", out var e) ? e.GetString() : null;
+            return (state, data, error);
+        }
+        catch (JsonException) { return (null, null, raw); }
     }
 }
 
